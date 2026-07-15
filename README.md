@@ -38,7 +38,16 @@ Most coding-agent failures are workflow failures:
 
 Dev Flow Skills adds gates, handoffs, runtime state, and final acceptance checks so the agent keeps moving without skipping the decisions that must remain user-owned.
 
-The workflow reuses mature installed skills instead of copying every method into dev-flow. Superpowers workflows are called directly when available, while other installed or marketplace skills are treated as optional sources of good handling patterns.
+## Self-contained core and optional adapters
+
+Dev-flow's core quality contract is self-contained and mandatory: local requirement clarification and root-cause analysis, followed for every behavior-changing task by `failing test first`, `observed RED`, `minimal GREEN`, `green-only refactor`, and `fresh evidence-before-claim`. These stages stay runnable without any external workflow package.
+
+Two optional adapters can add value without becoming prerequisites:
+
+- **Grill-me** is for high-value clarification when there are multiple valid options, high-risk assumptions, missing acceptance criteria, or a complex decision tree. Use it only when the capability is discoverable by exact name and the user is willing; it works branch by branch, one question at a time, toward shared understanding. If it is absent, cannot be loaded, or the user stops, continue with equivalent local clarification from the last confirmed decision.
+- **Trellis** reuses a project's existing workflow, task/PRD, spec, workspace, injected context, and check capabilities to reduce repeated context and preserve continuity across tasks. Each capability degrades independently. OpenSpec/dev-flow remains authoritative for requirements, gates, settlement, and acceptance; Trellis never replaces it. Lifecycle actions are only handed off after acceptance, in the current session, with separate authorization for each action and target.
+
+Neither adapter is an installation prerequisite. The project guarantee is limited to the published dev-flow surfaces: zero full retired-workflow identifier literals, zero dependencies on that workflow, and zero dev-flow-originated `discover`, `load`, `route`, `invoke`, `recommend`, `required`, `optional`, or `fallback` events targeting it. Globally installed skills—their installation, disabling, uninstallation, and platform-level triggering—are controlled by the user or platform and are outside this project's guarantee.
 
 ## Quick start
 
@@ -167,7 +176,7 @@ Loop Engineering is an outer control plane, not a `/dev-flow` phase.
 - `/dev-flow-triage` scans available evidence and builds a read-only Candidate Inbox.
 - `/dev-flow-scheduler` creates, updates, views, pauses, resumes, or deletes approved cron/heartbeat automations; it does not scan candidates or design loop logic.
 - Triage never writes code, commit, push, open PRs, create worktrees, mutate trackers, create schedulers, run `/dev-flow`, or run `/dev-flow-cr` automatically.
-- A confirmed delivery loop may auto-continue within baseline by handing phase-level work to dev-flow; phase implementation still uses OpenSpec/opsx artifacts, task orchestration, TDD per task via superpowers when available, acceptance evidence, and `phase_eval` checkpoints. `phase_eval` is not `/dev-flow-cr` and must not emit `cr_report_ready`.
+- A confirmed delivery loop may auto-continue within baseline by handing phase-level work to dev-flow; phase implementation still uses OpenSpec/opsx artifacts, task orchestration, the local per-task sequence `failing test first` / `observed RED` / `minimal GREEN` / `green-only refactor`, fresh phase evidence, acceptance evidence, and `phase_eval` checkpoints. `phase_eval` is not `/dev-flow-cr` and must not emit `cr_report_ready`.
 - Loop-owned artifacts live in `Docs/<topic>/loop/` or `docs/<topic>/loop/`. Phase OpenSpec/opsx originals stay in `openspec/changes/<change-id>/` or the project's standard OpenSpec/opsx location. Do not move or copy OpenSpec/opsx originals into the loop artifact directory; record phase mappings in `phase-artifacts.md` or `opsx-index.md`.
 - Loop `phase_eval threshold: 95`; auto-continue requires `phase_eval_result.checker_score >= 95` and no P0/P1 finding.
 - Freezing the initial baseline, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval; exceeding baseline, budget, retry, stop-condition, or side-effect boundaries requires stopping and asking the user.

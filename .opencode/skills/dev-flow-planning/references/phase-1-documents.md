@@ -5,7 +5,7 @@
 - [Phase 1 — OpenSpec Baseline Artifacts](#phase-1--openspec-baseline-artifacts)
 - [Canonical Workspace](#canonical-workspace)
 - [Artifact Variant](#artifact-variant)
-- [Brainstorming Handoff](#brainstorming-handoff)
+- [Capability Context Intake](#capability-context-intake)
 - [Loop Baseline Mode](#loop-baseline-mode)
 - [Review Mode](#review-mode)
 - [Artifact Sufficiency Gate](#artifact-sufficiency-gate)
@@ -56,21 +56,23 @@ Use richer software behavior artifact detail when centered on platform feature, 
 
 If both are plausible and artifact shape materially changes, ask one short clarification question.
 
-### Brainstorming Handoff
+### Capability Context Intake
 
-**Optional helper skill:** Use `superpowers:brainstorming` when available for creative feature shaping, UI concepts, new workflows, or ambiguous behavior changes before implementation planning. Dev-flow still owns the persisted OpenSpec/opsx artifact baseline, review gates, task orchestration, and test matrix.
+Before drafting or resuming artifacts, apply `skills/dev-flow-master/references/capability-adapters.md` and persist `capability_context`.
 
-Before drafting, the handoff must cover:
+For high-value ambiguity:
 
-- background / goals
-- scope / non-goals
-- design direction
-- risks / assumptions
-- testing concerns
+- Use Grill-me when the adapter reports `AVAILABLE`; otherwise continue the adapter's local clarification from the last confirmed decision.
+- Persist confirmed outcomes in OpenSpec requirements/design/tasks and `dev-flow-state.md`; capability state alone never passes a gate.
 
-Brainstorming is preparation, not a substitute for persisted OpenSpec/opsx artifacts.
+For a Trellis-aware project:
 
-When converting approved requirements into implementation tasks, use the task-decomposition patterns from `superpowers:writing-plans` when available. Do not replace dev-flow's canonical `task-orchestration.md` or Executable Test Matrix with a superpowers plan file; adapt the useful task granularity, file-scope, TDD, and verification patterns into dev-flow artifacts.
+- Reference only adapter-confirmed task/PRD, workspace, or injected-context paths and write an OpenSpec coverage mapping; do not copy equivalent content.
+- Keep OpenSpec/dev-flow as normative authority and Trellis content as conditional context.
+- On conflict, stop artifact progression, record `requirement_change_pending`, and return to the corresponding gate.
+- Record unavailable/failed components and continue the local artifact workflow.
+
+The intake must cover background/goals, scope/non-goals, design direction, risks/assumptions, and testing concerns before artifact drafting.
 
 ### Loop Baseline Mode
 

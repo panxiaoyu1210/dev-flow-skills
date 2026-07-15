@@ -34,7 +34,7 @@ Do not force the governed document path for a tiny one-file fix, a simple explan
 
 ```text
 Entry
-  dev-flow-master: existing context check + dev-flow-intent + route
+  dev-flow-master: existing context check + capability refresh + dev-flow-intent + route
 
 Specialized routes
   dev-flow-debugging: root-cause-first debugging route
@@ -59,21 +59,22 @@ A phase gate is never a soft stop. OpenSpec Baseline Gate and Phase 2 Gate requi
 ## Stage Order
 
 1. Existing change/spec check
-2. Intent classification — load `dev-flow-intent`
-3. Route selection — master emits `routing_decided`
-4. Complexity routing and path selection — master internal for routes that proceed to implementation
-5. For all implementation work: route to the OpenSpec/opsx artifact path; focused route owners may execute or verify only inside that artifact workflow, never instead of it
-6. If medium/heavyweight: load `dev-flow-planning`
-7. Pre-artifact clarification and artifact-start approval — `dev-flow-planning`
-8. OpenSpec/opsx baseline artifacts, independent checker review, and OpenSpec Baseline Gate — `dev-flow-planning`
-9. Task orchestration, detailed Executable Test Matrix, system-level checks, and orchestration checker — `dev-flow-planning`
-10. Git mode preparation — `dev-flow-git`
-11. Phase 2 Gate — explicit user approval before execution
-12. TDD execution and dynamic replanning — `dev-flow-execution`; Git decisions through `dev-flow-git`
-13. Acceptance — `dev-flow-acceptance`
-14. Completion gate — master checks acceptance evidence and reports final state
+2. Optional capability refresh — apply `capability-adapters.md` and persist `capability_context`
+3. Intent classification — load `dev-flow-intent`
+4. Route selection — master emits `routing_decided`
+5. Complexity routing and path selection — master internal for routes that proceed to implementation
+6. For all implementation work: route to the OpenSpec/opsx artifact path; focused route owners may execute or verify only inside that artifact workflow, never instead of it
+7. If medium/heavyweight: load `dev-flow-planning`
+8. Pre-artifact clarification and artifact-start approval — `dev-flow-planning`
+9. OpenSpec/opsx baseline artifacts, independent checker review, and OpenSpec Baseline Gate — `dev-flow-planning`
+10. Task orchestration, detailed Executable Test Matrix, system-level checks, and orchestration checker — `dev-flow-planning`
+11. Git mode preparation — `dev-flow-git`
+12. Phase 2 Gate — explicit user approval before execution
+13. TDD execution and dynamic replanning — `dev-flow-execution`; Git decisions through `dev-flow-git`
+14. Acceptance — `dev-flow-acceptance`
+15. Completion gate — master checks acceptance evidence and reports final state
 
-**Loop-authorized phase entry:** when dev-flow receives a confirmed loop-authorized phase handoff (all five conditions in `routing-and-complexity.md §Loop-Authorized Phase Mode` are verified), entry begins at step 6 with the loop context already established. Steps 1–5 are replaced by verifying the loop signals; steps 8 and 11 skip the interactive user gate (see loop-authorized exception in `state-and-gates.md`). Record the loop authorization in `dev-flow-state.md` before proceeding.
+**Loop-authorized phase entry:** when dev-flow receives a confirmed loop-authorized phase handoff (all five conditions in `routing-and-complexity.md §Loop-Authorized Phase Mode` are verified), entry begins at step 7 with the loop context already established. Steps 1–6 are replaced by verifying loop signals and refreshing optional capabilities; steps 9 and 12 skip the interactive user gate (see loop-authorized exception in `state-and-gates.md`). Record the loop authorization in `dev-flow-state.md` before proceeding.
 
 Continue-by-default rule:
 
@@ -111,6 +112,7 @@ Before any new planning, execution, Git, or acceptance action, reload or re-read
 7. relevant requirement/design artifacts if planning or requirement-change state is involved
 8. actual Git/filesystem state
 9. if `dev-flow-state.md` records `loop_authorized: true`: also load the loop artifact directory's `loop-state.md` and re-verify all of the following before continuing — `loop_baseline_ready` (baseline_status must still be `user_confirmed`), `loop_control_ready` (check `loop_id`, `auto_continue_scope`, `envelope_required`), `loop_envelope_ready` (check budget remaining, `dev_flow_phase_handoff`, `auto_continue_scope`), confirmed loop-only baseline artifact paths, and the current Loop Phase DAG node — do not treat the session as a fresh dev-flow entry
+10. `capability_context`, then re-run the read-only detection and invalidation rules in `capability-adapters.md`
 
 Recovery rules:
 
@@ -122,7 +124,7 @@ Recovery rules:
 
 ## Guardrails
 
-- Do not replace opsx, OpenSpec, or superpowers; route to them when they own the work.
+- Do not replace opsx, OpenSpec, or local dev-flow stage contracts with optional capability adapters.
 - Do not force heavy orchestration for every request; use the classification matrix.
 - Do not advance past OpenSpec Baseline Gate or Phase 2 Gate without explicit user approval.
 - Do not let the main agent self-approve gate-impacting scores, phase_eval, or readiness. Use independent checker subagents with raw artifacts.

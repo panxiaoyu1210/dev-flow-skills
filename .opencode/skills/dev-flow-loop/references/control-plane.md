@@ -4,6 +4,7 @@
 
 - [Scope Types](#scope-types)
 - [Loop Versus Dev-Flow Boundary](#loop-versus-dev-flow-boundary)
+- [Local Quality and Trellis Boundaries](#local-quality-and-trellis-boundaries)
 - [Loop Artifact Directory](#loop-artifact-directory)
 - [Delivery Loop Lifecycle](#delivery-loop-lifecycle)
 - [Baseline Document Quality Checklist](#baseline-document-quality-checklist)
@@ -40,6 +41,15 @@
 | `dev-flow-loop-triage` | candidate discovery and readable next-step recommendation | fixing candidates, running dev-flow, creating schedules |
 
 The delivery loop is allowed to invoke dev-flow after the user confirms the loop baseline and envelope. This is not the same as auto-starting from a read-only triage item.
+
+## Local Quality and Trellis Boundaries
+
+- Every phase implementation task follows the local TDD contract: failing test first, observed RED, minimal GREEN, green-only refactor, and `command`/`exit_code`/`output_summary` evidence. Only an exception explicitly allowed by OpenSpec and approved by the user may record alternative verification.
+- Before a phase or full loop result is claimed, apply fresh evidence-before-claim: rerun the direct proving command/browser observation in the current round and read the complete result. Store the phase current-round evidence artifact path in `phase_eval_result.evidence_paths`; store the loop current-round evidence in the report referenced by `loop_eval_result.loop_report_path`. Each evidence artifact records `claim_scope`, `command_or_browser`, `observed_at`, `result`, `output_summary`, and `supported_conclusion`. Historical green output and agent reports are not proof.
+- Trellis spec/check information is consumed only from the phase's current `capability_context` and remains supplemental to the loop baseline, phase OpenSpec, test matrix, and checker evidence.
+- A Trellis check may run only as an explicit Phase 3 task with an assigned writer lane, every potential write path inside that task's exact scope, and all Git/side-effect permissions satisfied. An unknown condition is false.
+- `phase_eval`, `loop_eval`, and final acceptance are read-only evidence consumers and never call a check that may write. Missing or failed Trellis components do not lower gates, scores, settlement, or evidence requirements.
+- Loop baseline, phase decisions, `phase_eval_result`, `loop_eval_result`, and dev-flow settlement/acceptance keep their existing owners.
 
 ## Loop Artifact Directory
 
@@ -134,9 +144,9 @@ openspec/
    - update `phase-artifacts.md` or `opsx-index.md` with the phase-to-change mapping and status
    - create the phase-internal task DAG and Executable Test Matrix
    - create detailed test coverage for normal, edge, failure, integration, and system-level checks
-   - require TDD per implementation task via `superpowers:test-driven-development` when available
+   - require local TDD per implementation task: failing test first, observed RED, minimal GREEN, green-only refactor, and command result evidence
    - collect acceptance and system-level evidence
-11. Run checker `phase_eval` after each phase or repair round using a checker subagent; this checker is mandatory and preauthorized by the loop gate for read-only review of phase evidence. The checker scores phase artifacts from 0–100; record `phase_eval_result.checker_score`. `phase_eval` is not `/dev-flow-cr`, must not emit `cr_report_ready`, and must not use the independent CR report schema.
+11. Rerun the phase's proving commands/browser checks in the current round, then run checker `phase_eval` after each phase or repair round using a checker subagent; this checker is mandatory and preauthorized by the loop gate for read-only review of phase evidence. The checker scores phase artifacts from 0–100; record `phase_eval_result.checker_score`. `phase_eval` is not `/dev-flow-cr`, must not emit `cr_report_ready`, and must not use the independent CR report schema.
 12. Decide:
    - continue to next phase only when `phase_eval` checker score ≥ 95, no P0/P1 finding exists, and dependencies are ready
    - run a repair round when issues are inside baseline and budget remains
@@ -435,8 +445,8 @@ loop_control_ready:
 
 Use actual artifacts before memory:
 
-1. Git/filesystem state, including current diff and branch.
-2. CI/test output when available.
+1. Fresh current-round proving command/browser output and actual Git/filesystem state, including current diff and branch.
+2. Other CI/test output when available; historical output may explain context but cannot prove a completion claim.
 3. OpenSpec/opsx change artifacts.
 4. dev-flow artifacts: `dev-flow-state.md`, `progress.md`, `task-orchestration.md`, `delivery-report.md`, CR reports.
 5. Loop artifacts when explicitly present: `loop-state.md` (canonical loop signal ledger), `phase-artifacts.md` or `opsx-index.md`, loop report, envelope, candidate inbox, trace log, `phase_eval_result` entries.
@@ -474,7 +484,9 @@ Start at 100 and subtract:
 - 15: phase execution starts without verified `openspec_artifact_ready.checker_score ≥ 95` and `task_orchestration_ready.checker_score ≥ 95` from dev-flow-planning.
 - 15: dev-flow phase handoff does not require phase-level OpenSpec/opsx artifacts.
 - 15: OpenSpec/opsx originals are moved or copied into `Docs/<topic>/loop/` instead of being linked from `phase-artifacts.md` or `opsx-index.md`.
-- 15: implementation tasks do not require TDD per task via superpowers or equivalent fallback.
+- 15: implementation tasks do not enforce the local per-task RED-GREEN-refactor evidence contract.
+- 15: a phase or loop completion claim relies on historical output, chat memory, or agent report instead of fresh evidence-before-claim.
+- 25: a Trellis check runs outside an explicit Phase 3 task/writer/path/permission boundary or from read-only eval/acceptance.
 - 15: phase_eval skips the checker subagent, or is scored only by the main agent without a separate checker.
 - 15: the checker subagent that scores baseline or phase artifacts is the same agent instance that produced those artifacts.
 - 15: no envelope for recurring, scheduled, background, or persistent loops.

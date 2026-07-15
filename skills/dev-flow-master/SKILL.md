@@ -20,9 +20,10 @@ All user-facing replies and all generated artifact documents (requirements, desi
 ## Core Contract
 
 1. Load dev-flow-intent before routing every new request.
-2. Enforce OpenSpec Baseline Gate and Phase 2 gates without bypass unless the request is a loop-authorized phase handoff with a confirmed loop baseline and envelope.
-3. Never emit routing_decided without a complete intent_decided signal.
-4. Never advance to the next stage without the required gating signal for the current stage.
+2. At entry and recovery, apply `references/capability-adapters.md`; optional capabilities never replace local stage contracts or gates.
+3. Enforce OpenSpec Baseline Gate and Phase 2 gates without bypass unless the request is a loop-authorized phase handoff with a confirmed loop baseline and envelope.
+4. Never emit routing_decided without a complete intent_decided signal.
+5. Never advance to the next stage without the required gating signal for the current stage.
 
 ## Load First
 
@@ -61,6 +62,7 @@ Read `references/flow-and-recovery.md` for stage order, continue-by-default beha
 ## References
 
 - `references/routing-and-complexity.md`: owner selection, tie-breakers, complexity classification, lightweight opsx/OpenSpec contract.
+- `references/capability-adapters.md`: Grill-me/Trellis detection, capability context, authority order, conflict gate, and lifecycle authorization.
 - `references/state-and-gates.md`: signal schemas, gate rules, stage ownership matrix, phase gates, and completion gate.
 - `references/flow-and-recovery.md`: stage order, continue-by-default behavior, progress queries, context recovery, and guardrails.
 

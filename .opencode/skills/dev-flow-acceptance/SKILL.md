@@ -17,7 +17,9 @@ All user-facing replies and all generated artifact documents (requirements, desi
 
 Own final acceptance after DAG batches or lightweight opsx/OpenSpec work are complete, deferred, or replanned. Acceptance decides readiness; it does not rely on chat memory or agent self-reporting.
 
-Use `superpowers:verification-before-completion` when available before claiming complete, fixed, passing, or ready.
+Before any final acceptance claim, enforce fresh evidence-before-claim: identify the proving command or browser observation, rerun it in the current round, read the complete result, record `claim_scope`, `command_or_browser`, `observed_at`, `exit_code_or_result`, `output_summary`, and `supported_conclusion`, then claim only the supported scope. Historical logs, earlier green runs, and implementer reports are context, not proof.
+
+Acceptance 只消费已记录在当前 `capability_context` 和任务证据中的 Trellis spec/check 证据。Acceptance 是只读阶段；不得运行任何可能写入的 check。可选能力缺失或失败不得降低本地检查、checker 分数或 readiness 要求。
 
 ## Core Contract
 

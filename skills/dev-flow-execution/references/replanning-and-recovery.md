@@ -128,7 +128,8 @@ When gate re-entry is not required, update artifacts and progress, announce brie
 
 ## Capability Fallback
 
-- If `superpowers:test-driven-development` is unavailable, run equivalent TDD: failing test first, minimal implementation, re-run tests, refactor after green.
+- Every Phase 3 implementation task uses the local contract: failing test first, observed RED, minimal GREEN, green-only refactor, and command/exit-code/output-summary evidence. Only an OpenSpec-explicit, user-approved exception may use recorded alternative verification.
+- If Trellis or one of its components is unavailable or failed, continue with OpenSpec, repository patterns, the local quality contracts, and the Executable Test Matrix. Never lower a gate or invent missing context.
 - If sub-agent dispatch is unavailable, main agent may execute DAG serially with the same task/test contract, and must record the fallback.
 - If PR/remotes/permissions are unavailable, only Git integration falls back through `dev-flow-git`; do not skip implementation, diagnostics, tests, review/self-check, or delivery reporting.
 
@@ -158,11 +159,14 @@ Before dispatching any task, rebuild Runtime Orchestration State from:
 6. `progress.md`
 7. chat memory only as a last-resort hint
 
+Refresh the `capability_context` invalidation key before dispatch. Stale Trellis `spec_context` or `check` records provide neither constraints nor execution authority; re-detect them read-only through the capability adapter and reapply the Phase 3 task/writer/path/permission boundary.
+
 Mandatory recovery checks:
 
 - If `dev-flow-state.md` or `progress.md` records requirement change, `stale-pending`, gate re-entry, failed/blocked task, rollback, skip/defer decision, or pause, resume that recovery path first.
 - If a task is marked done but its changed files/tests/evidence are missing, treat it as not settled and re-verify before advancing.
 - If a task is marked done but task local verification evidence, TDD evidence, required UI/UX evidence, or canonical Git integration state is missing, treat it as not settled for acceptance.
+- If the current-round evidence artifact referenced by `local_verification` or `quality_evidence` is missing, belongs to an earlier round, or no longer proves the reconstructed state, treat the task, batch, or workflow claim as stale and rerun its proving command/browser check under fresh evidence-before-claim.
 - If a task is marked running but no task agent is active, classify it as interrupted and either resume the same task context or retry without counting it as a task failure until a final signal exists. After **2 resume attempts** without a final signal, stop retrying: mark the task `final_failed` and record `interrupted_without_resolution` as the failure reason. Do not loop indefinitely on interrupted tasks.
 - If documents changed after Runtime Orchestration State was last built, rebuild DAG, batches, Executable Test Matrix, and current execution pointer.
 - Rewrite `dev-flow-state.md` and `progress.md` after reconciliation and before dispatching more work.

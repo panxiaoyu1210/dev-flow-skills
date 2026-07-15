@@ -38,7 +38,16 @@ flowchart LR
 
 Dev Flow Skills 添加了关卡、移交机制、运行时状态和最终验收检查，使 Agent 在不跳过必须由用户决策的环节的前提下保持推进。
 
-本工作流复用成熟的已安装 Skills，而不是将每个方法都复制到 dev-flow 中。Superpowers 工作流在可用时直接调用，其他已安装或市场 Skills 则作为可选的优良处理模式来源。
+## 自包含核心和可选适配器
+
+dev-flow 的核心质量契约是自包含且强制的：本地需求澄清和根因分析，以及每个行为变更任务依次执行 `failing test first`、`observed RED`、`minimal GREEN`、`green-only refactor` 和 `fresh evidence-before-claim`。即使没有任何外部流程包，这些阶段也始终可运行。
+
+两个可选适配器可以增加价值，但不会成为运行前提：
+
+- **Grill-me** 适合存在多个有效方案、高风险假设、缺少 acceptance criteria 或复杂决策树时的高价值澄清。仅当该能力可按精确名称发现且用户愿意时使用；它沿决策树逐分支推进，一次只问一个问题，直至形成共享理解。若能力缺失、加载失败或用户中止，则从最后一个已确认决策继续使用同等的本地澄清。
+- **Trellis** 复用项目已有的 workflow、task/PRD、spec、workspace、injected context 和 check 能力，以减少重复上下文并维持跨任务连续性；每项能力独立降级。OpenSpec/dev-flow 始终是 requirements、gate、settlement 和 acceptance 的权威，Trellis 不会取代它。生命周期动作只能在 acceptance 后移交，限定当前会话，并对每个动作和目标分别授权。
+
+两个适配器都不是安装前置条件。项目保证仅限已发布的 dev-flow 表面：零完整遗留流程标识字面、零对该流程的依赖，以及零由 dev-flow 发起且以该流程为目标的 `discover`、`load`、`route`、`invoke`、`recommend`、`required`、`optional` 或 `fallback` 事件。全局 Skills 的安装、禁用、卸载和平台级触发由用户或平台控制，不属于本项目保证。
 
 ## 快速开始
 
@@ -167,7 +176,7 @@ Loop Engineering 是外层控制平面，不是 `/dev-flow` 的阶段。
 - `/dev-flow-triage` 扫描可用证据，构建只读候选列表（Candidate Inbox）。
 - `/dev-flow-scheduler` 创建、更新、查看、暂停、恢复或删除已审批的 cron/心跳自动化；它不扫描候选列表，也不设计 loop 逻辑。
 - Triage 从不自动执行写代码、提交、推送、开 PR、创建 worktree、修改追踪器、创建调度器、运行 `/dev-flow` 或 `/dev-flow-cr` 等操作。
-- 已确认的交付 loop 可在基线范围内自动继续，将阶段级工作移交给 dev-flow；阶段实现仍需使用 OpenSpec/opsx 制品、任务编排、每任务 TDD（在 superpowers 可用时）、验收证据和 `phase_eval` 检查点。`phase_eval` 不是 `/dev-flow-cr`，不得输出 `cr_report_ready`。
+- 已确认的交付 loop 可在基线范围内自动继续，将阶段级工作移交给 dev-flow；阶段实现仍需使用 OpenSpec/opsx 制品、任务编排、本地逐任务 `failing test first` / `observed RED` / `minimal GREEN` / `green-only refactor`、新鲜阶段证据、验收证据和 `phase_eval` 检查点。`phase_eval` 不是 `/dev-flow-cr`，不得输出 `cr_report_ready`。
 - Loop 专属制品存放在 `Docs/<topic>/loop/` 或 `docs/<topic>/loop/`。阶段 OpenSpec/opsx 原件留在 `openspec/changes/<change-id>/` 或项目标准 OpenSpec/opsx 位置。不要将 OpenSpec/opsx 原件移入或复制到 loop 制品目录；在 `phase-artifacts.md` 或 `opsx-index.md` 中记录阶段映射关系。
 - Loop `phase_eval threshold: 95`；自动继续要求 `phase_eval_result.checker_score >= 95` 且无 P0/P1 发现。
 - 冻结初始基线、审批 Loop Phase DAG 和启用 `within_confirmed_baseline` 均需用户明确批准；超出基线、预算、重试、停止条件或副作用边界时，必须停下来询问用户。

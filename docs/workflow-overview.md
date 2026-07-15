@@ -2,7 +2,13 @@
 
 Dev Flow Skills splits the development flow into focused skills.
 
-Dev-flow owns routing, gates, persisted artifacts, and evidence. It directly reuses mature Superpowers workflows when available, and absorbs useful patterns from other installed skills without making them required dependencies.
+Dev-flow owns routing, gates, persisted artifacts, and evidence. Its mandatory core is self-contained: local requirement clarification, root-cause analysis, per-task `failing test first`, `observed RED`, `minimal GREEN`, `green-only refactor`, and `fresh evidence-before-claim` remain runnable without an external workflow package.
+
+Grill-me is an optional high-value clarification adapter for multiple valid options, high-risk assumptions, missing acceptance criteria, or complex decision trees. Use it only when the capability is discoverable by exact name and the user is willing; it proceeds branch by branch and asks one question at a time. If it is absent, cannot be loaded, or the user stops, continue equivalent local clarification from the last confirmed decision.
+
+Trellis is an optional context adapter for projects that already expose workflow, task/PRD, spec, workspace, injected context, or check capabilities. Reuse only verified capabilities, degrade each one independently, and continue the standard flow when any is unavailable. OpenSpec/dev-flow stays authoritative for requirements, gates, task settlement, and acceptance. Trellis lifecycle actions can only be handed off after acceptance, in the current session, with separate authorization for every action and target.
+
+The project guarantee covers only published dev-flow surfaces: zero full retired-workflow identifier literals, zero dependencies on that workflow, and zero dev-flow-originated `discover`, `load`, `route`, `invoke`, `recommend`, `required`, `optional`, or `fallback` events targeting it. Installation, disabling, uninstallation, or platform-level triggering of globally installed skills is controlled by the user or platform and is outside this project's guarantee. Grill-me and Trellis are not installation prerequisites.
 
 Loop Engineering is an outer control plane around dev-flow. `/dev-flow-loop` can preserve a goal across multiple dev-flow rounds, own confirmed loop-only baseline artifacts, create a cross-phase Loop Phase DAG, run eval/repair decisions, and auto-continue inside an approved envelope. `/dev-flow-triage` only discovers candidates. `/dev-flow-scheduler` only manages approved cron/heartbeat automations.
 
@@ -30,7 +36,7 @@ Loop-owned artifacts live under `Docs/<topic>/loop/` or `docs/<topic>/loop/`. Th
 
 Freezing the initial baseline, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval. Exceeding baseline, budget, retry, stop-condition, or side-effect boundaries requires stopping and asking the user.
 
-Machine-checkable loop terms for implementations: `loop_baseline_ready`, `independent_checker_scores`, `independent_checker_count`, `quality_threshold: 95`, `phase_eval threshold: 95`, `no P0/P1 finding`, `Baseline Docs Gate`, `Execution Envelope Gate`, `within_confirmed_baseline`, `auto-continue within baseline`, `TDD per task via superpowers`, and max phase repair rounds of 3.
+Machine-checkable loop terms for implementations: `loop_baseline_ready`, `independent_checker_scores`, `independent_checker_count`, `quality_threshold: 95`, `phase_eval threshold: 95`, `no P0/P1 finding`, `Baseline Docs Gate`, `Execution Envelope Gate`, `within_confirmed_baseline`, `auto-continue within baseline`, local per-task TDD evidence, fresh phase evidence, and max phase repair rounds of 3.
 
 ## Lightweight path
 
@@ -50,11 +56,11 @@ The loop's `phase-artifacts.md` or `opsx-index.md` maps each phase to its OpenSp
 
 `dev-flow-execution` keeps implementation moving until all planned tasks settle. It owns runtime orchestration state, sub-agent settlement, dynamic replanning, and recovery.
 
-Implementation tasks use TDD per task through `superpowers:test-driven-development` when available, or an equivalent local fallback. Each task records RED/GREEN/refactor evidence before acceptance.
+Every behavior-changing implementation task follows the local mandatory sequence: `failing test first`, verify an `observed RED`, make the `minimal GREEN`, then perform `green-only refactor`. Each task records the command, exit code, and output summary, and reruns proving commands or browser checks to provide fresh evidence-before-claim; no external workflow is a prerequisite or fallback for this contract.
 
 ## Phase 4: Acceptance
 
-`dev-flow-acceptance` collects verification evidence and decides whether the change is ready. It verifies `dev-flow-state.md`, task progress, task local verification evidence, TDD evidence, Git integration states, system-level checks, requirements/design/test coverage, and applicable quality reports before producing the delivery report. Independent CR is separate: after user acceptance, run `/dev-flow-cr` to produce a CR report.
+`dev-flow-acceptance` collects verification evidence and decides whether the change is ready. It verifies `dev-flow-state.md`, task progress, task local verification evidence, TDD evidence, Git integration states, system-level checks, requirements/design/test coverage, and applicable quality reports before producing the delivery report. Only after acceptance may dev-flow record a Trellis lifecycle handoff; the current session must authorize each concrete action and target separately. Independent CR is separate: after user acceptance, run `/dev-flow-cr` to produce a CR report.
 
 ## Requirement changes during execution
 

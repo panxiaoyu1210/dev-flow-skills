@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from 'node:fs';
 import { copyFile, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
@@ -15,6 +16,8 @@ const claudeSkillsRoot = path.join(packageRoot, 'skills');
 const claudeCommandsSourceRoot = path.join(packageRoot, 'commands', 'claude');
 const packageJsonPath = path.join(packageRoot, 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+const retiredIdentifierBytes = Buffer.from(['super', 'power'].join(''), 'ascii');
+const npmPackDryRunArguments = ['pack', '--dry-run', '--json', '--ignore-scripts', '--loglevel=silent'];
 const manifestName = 'dev-flow-manifest.json';
 const repositorySlug = 'paulLee778899/dev-flow-skills';
 const coreSkillNames = [
@@ -84,7 +87,11 @@ const loopReadOnlyPhrases = [
   'Loop Phase DAG',
   'phase-level OpenSpec/opsx',
   'auto-continue within baseline',
-  'TDD per task via superpowers',
+  'failing test first',
+  'observed RED',
+  'minimal GREEN',
+  'green-only refactor',
+  'fresh evidence-before-claim',
   'phase_eval_result.checker_score',
   'checker score >= 95',
   'dag_envelope_checker_score',
@@ -117,7 +124,11 @@ const loopDeliveryPhrases = [
   'phase_eval',
   'phase_eval threshold: 95',
   'no P0/P1 finding',
-  'TDD per task via superpowers',
+  'failing test first',
+  'observed RED',
+  'minimal GREEN',
+  'green-only refactor',
+  'fresh evidence-before-claim',
   'requirements, high-level design, detailed design, test plan (`test-plan.md`), and test case workbook (`test-cases.xlsx`)',
   'max phase repair rounds',
 ];
@@ -258,9 +269,10 @@ const governanceSemanticChecks = [
       'Requirement Change During Execution',
       'Never dispatch from stale memory',
       'execution_settled',
-      'superpowers:test-driven-development',
+      'Every implementation task, lightweight or heavyweight, must follow the local TDD contract',
       'failing test first',
       'TDD evidence',
+      'fresh evidence-before-claim',
       'not settled for acceptance',
       'TDD evidence status',
       'task local verification evidence and TDD evidence',
@@ -330,7 +342,8 @@ const governanceSemanticChecks = [
       'openspec/changes/<change-id>/',
       'Do not move or copy OpenSpec/opsx originals into the loop artifact directory',
       'auto-continue within baseline',
-      'TDD per task via superpowers',
+      'local TDD per task',
+      'fresh evidence-before-claim',
       'quality_threshold: 95',
       'phase_eval',
       'phase_eval threshold: 95',
@@ -445,6 +458,82 @@ const governanceSemanticChecks = [
       'integration points, external dependency failures, and offline/degraded modes',
       'system-level checks',
       'checker_score',
+    ],
+  },
+  {
+    skill: 'dev-flow-master',
+    file: 'references/capability-adapters.md',
+    label: 'Grill-me clarification adapter contract',
+    required: [
+      'grill-me',
+      'AVAILABLE',
+      'UNAVAILABLE',
+      'LOAD_FAILED',
+      'DECLINED',
+      '### 本地回退',
+      '一次询问一个高价值问题。',
+    ],
+  },
+  {
+    skill: 'dev-flow-master',
+    file: 'references/capability-adapters.md',
+    label: 'Trellis capability adapter contract',
+    required: [
+      '.trellis/workflow.md',
+      '`task_context`',
+      '`spec_context`',
+      '`workspace_memory`',
+      '`injected_context`',
+      '`check`',
+      '一个分量失败不得覆盖其他分量',
+      'check.detected',
+      'check.executable_now',
+      '不得枚举后执行 `.trellis/scripts/` 中的未知内容。',
+    ],
+  },
+  {
+    skill: 'dev-flow-debugging',
+    file: 'SKILL.md',
+    label: 'local root-cause contract',
+    required: [
+      '稳定复现并记录失败命令或步骤、退出码与输出摘要',
+      '先收集证据，再提出可证伪假设并定位根因',
+      'failing test first',
+      'observed RED',
+      'minimal GREEN',
+      '相关检查和回归验证',
+      '不可复现时停止修复',
+      '不得猜测修复',
+    ],
+  },
+  {
+    skill: 'dev-flow-execution',
+    file: 'SKILL.md',
+    label: 'local per-task TDD contract',
+    required: [
+      'failing test first',
+      'observed RED',
+      'minimal GREEN',
+      'green-only refactor',
+      'Each run records the command, `exit_code`, and `output_summary`.',
+      '只有 OpenSpec 明确允许且用户批准的例外',
+    ],
+  },
+  {
+    skill: 'dev-flow-acceptance',
+    file: 'SKILL.md',
+    label: 'fresh verification contract',
+    required: [
+      'rerun it in the current round',
+      'read the complete result',
+      'claim only the supported scope',
+      '`claim_scope`',
+      '`command_or_browser`',
+      '`observed_at`',
+      '`exit_code_or_result`',
+      '`output_summary`',
+      '`supported_conclusion`',
+      'Historical logs, earlier green runs, and implementer reports are context, not proof.',
     ],
   },
 ];
@@ -648,6 +737,7 @@ async function doctor() {
     console.log(`${exists ? '✓' : '✗'} ${relativePath}`);
   }
 
+  ok = checkRetiredWorkflowBytes({ includeWorkspace: flags.has('workspace') }) && ok;
   ok = checkInstalledOpenCodeSemantics(target) && ok;
 
   const manifest = readManifest(target);
@@ -667,6 +757,218 @@ async function doctor() {
   }
 
   console.log('\nReady.');
+}
+
+function checkRetiredWorkflowBytes({ includeWorkspace }) {
+  const packPaths = collectNpmPackPaths();
+  let ok = packPaths !== null;
+  if (packPaths !== null) {
+    ok = scanRetiredIdentifierBytes(packPaths, 'package') && ok;
+  }
+
+  if (includeWorkspace) {
+    const workspacePaths = collectWorkspacePaths();
+    ok = workspacePaths !== null && ok;
+    if (workspacePaths !== null) {
+      ok = scanRetiredIdentifierBytes(workspacePaths, 'workspace') && ok;
+    }
+  }
+
+  return ok;
+}
+
+function collectNpmPackPaths() {
+  const result = spawnSync('npm', npmPackDryRunArguments, {
+    cwd: packageRoot,
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
+  });
+
+  if (result.error || result.status !== 0) {
+    const reason = result.error
+      ? `spawn ${result.error.code ?? 'error'}`
+      : result.signal
+        ? `signal ${result.signal}`
+        : `exit ${String(result.status)}`;
+    console.log(`✗ retired workflow package scan: npm pack failed (${reason})`);
+    return null;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    console.log('✗ retired workflow package scan: invalid npm pack JSON');
+    return null;
+  }
+
+  if (
+    !Array.isArray(parsed)
+    || parsed.length !== 1
+    || parsed[0] === null
+    || typeof parsed[0] !== 'object'
+    || !Array.isArray(parsed[0].files)
+  ) {
+    console.log('✗ retired workflow package scan: invalid npm pack result structure');
+    return null;
+  }
+
+  if (parsed[0].files.length === 0) {
+    console.log('✗ retired workflow package scan: npm pack files list is empty');
+    return null;
+  }
+
+  const paths = [];
+  for (let index = 0; index < parsed[0].files.length; index += 1) {
+    const entry = parsed[0].files[index];
+    if (entry === null || typeof entry !== 'object' || typeof entry.path !== 'string' || entry.path.length === 0) {
+      console.log(`✗ retired workflow package scan: invalid npm pack file entry at index ${index}`);
+      return null;
+    }
+    paths.push(entry.path);
+  }
+
+  return paths;
+}
+
+function collectWorkspacePaths() {
+  const result = spawnSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+    cwd: packageRoot,
+    encoding: 'buffer',
+    maxBuffer: 16 * 1024 * 1024,
+  });
+
+  if (result.error || result.status !== 0) {
+    const reason = result.error
+      ? `spawn ${result.error.code ?? 'error'}`
+      : result.signal
+        ? `signal ${result.signal}`
+        : `exit ${String(result.status)}`;
+    console.log(`✗ retired workflow workspace scan: git ls-files failed (${reason})`);
+    return null;
+  }
+
+  if (!Buffer.isBuffer(result.stdout) || result.stdout.length === 0 || result.stdout.at(-1) !== 0) {
+    console.log('✗ retired workflow workspace scan: invalid or empty git file list');
+    return null;
+  }
+
+  let decoded;
+  try {
+    decoded = new TextDecoder('utf-8', { fatal: true }).decode(result.stdout);
+  } catch {
+    console.log('✗ retired workflow workspace scan: git file list is not valid UTF-8');
+    return null;
+  }
+
+  const paths = decoded.split('\0');
+  paths.pop();
+  if (paths.length === 0 || paths.some((filePath) => filePath.length === 0)) {
+    console.log('✗ retired workflow workspace scan: invalid or empty git file list');
+    return null;
+  }
+  return paths;
+}
+
+function scanRetiredIdentifierBytes(relativePaths, scope) {
+  const canonicalRoot = realpathSync(packageRoot);
+  let ok = true;
+  let scanned = 0;
+
+  for (const relativePath of relativePaths) {
+    const displayPath = JSON.stringify(relativePath);
+    if (path.isAbsolute(relativePath) || path.win32.isAbsolute(relativePath)) {
+      ok = false;
+      console.log(`✗ retired workflow ${scope} scan: absolute path is not allowed: ${displayPath}`);
+      continue;
+    }
+
+    const candidatePath = path.resolve(canonicalRoot, relativePath);
+    if (!isPathContained(canonicalRoot, candidatePath)) {
+      ok = false;
+      console.log(`✗ retired workflow ${scope} scan: path escapes package root: ${displayPath}`);
+      continue;
+    }
+
+    let canonicalPath;
+    try {
+      canonicalPath = realpathSync(candidatePath);
+    } catch {
+      ok = false;
+      console.log(`✗ retired workflow ${scope} scan: cannot resolve file: ${displayPath}`);
+      continue;
+    }
+
+    if (!isPathContained(canonicalRoot, canonicalPath)) {
+      ok = false;
+      console.log(`✗ retired workflow ${scope} scan: realpath escapes package root: ${displayPath}`);
+      continue;
+    }
+
+    let stat;
+    try {
+      stat = statSync(canonicalPath);
+    } catch {
+      ok = false;
+      console.log(`✗ retired workflow ${scope} scan: cannot inspect file: ${displayPath}`);
+      continue;
+    }
+    if (!stat.isFile()) {
+      ok = false;
+      console.log(`✗ retired workflow ${scope} scan: not a regular file: ${displayPath}`);
+      continue;
+    }
+
+    let content;
+    try {
+      content = readFileSync(canonicalPath);
+    } catch {
+      ok = false;
+      console.log(`✗ retired workflow ${scope} scan: cannot read file: ${displayPath}`);
+      continue;
+    }
+
+    scanned += 1;
+    if (containsAsciiCaseInsensitive(content, retiredIdentifierBytes)) {
+      ok = false;
+      console.log(`✗ retired workflow ${scope} scan: forbidden identifier bytes: ${displayPath}`);
+    }
+  }
+
+  if (ok) {
+    console.log(`✓ retired workflow ${scope} bytes (${scanned} files)`);
+  }
+  return ok;
+}
+
+function isPathContained(rootPath, candidatePath) {
+  const relativePath = path.relative(rootPath, candidatePath);
+  return relativePath === '' || (
+    relativePath !== '..'
+    && !relativePath.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relativePath)
+  );
+}
+
+function containsAsciiCaseInsensitive(content, needle) {
+  if (needle.length === 0 || content.length < needle.length) {
+    return false;
+  }
+
+  outer:
+  for (let start = 0; start <= content.length - needle.length; start += 1) {
+    for (let offset = 0; offset < needle.length; offset += 1) {
+      if (foldAsciiByte(content[start + offset]) !== foldAsciiByte(needle[offset])) {
+        continue outer;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+function foldAsciiByte(value) {
+  return value >= 0x41 && value <= 0x5a ? value + 0x20 : value;
 }
 
 async function installCodexAdapter(action) {
@@ -1394,7 +1696,8 @@ function checkGovernanceSemantics(skillsRoot, labelPrefix) {
   for (const check of governanceSemanticChecks) {
     ok = checkFileSemantics({
       label: `${labelPrefix}: ${check.label}`,
-      dirPath: path.join(skillsRoot, check.skill),
+      filePath: check.file ? path.join(skillsRoot, check.skill, check.file) : undefined,
+      dirPath: check.file ? undefined : path.join(skillsRoot, check.skill),
       required: check.required,
       forbidden: [...staleWorkflowPatterns, ...(check.forbidden ?? [])],
     }) && ok;
@@ -1559,8 +1862,10 @@ function countLines(content) {
 }
 
 function hasTopLevelTableOfContents(content) {
-  const firstLines = content.split('\n').slice(0, 20).join('\n');
-  return /(^|\n)## Table of Contents\n/.test(firstLines);
+  return content
+    .split('\n')
+    .slice(0, 20)
+    .some((line) => line === '## Table of Contents' || line === '## 目录');
 }
 
 function isForbiddenOpenCodeInstallPath(relativePath) {
@@ -1717,7 +2022,7 @@ function printHelp() {
 Usage:
   dev-flow install [--global|--target PATH] [--dry-run] [--force]
   dev-flow update [--global|--target PATH] [--dry-run] [--force]
-  dev-flow doctor [--global|--target PATH]
+  dev-flow doctor [--global|--target PATH] [--workspace]
   dev-flow install-codex [--target PATH] [--commands-target PATH] [--dry-run] [--force]
   dev-flow update-codex [--target PATH] [--commands-target PATH] [--dry-run] [--force]
   dev-flow doctor-codex [--target PATH] [--commands-target PATH]

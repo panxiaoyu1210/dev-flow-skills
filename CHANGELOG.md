@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+- Document the self-contained dev-flow core: local clarification and root-cause analysis, per-task `failing test first` / `observed RED` / `minimal GREEN` / `green-only refactor`, and `fresh evidence-before-claim` remain mandatory without external workflow packages.
+- Add Grill-me as an optional high-value clarification adapter and Trellis as a per-capability project-context adapter; OpenSpec/dev-flow remains authoritative for requirements, gates, settlement, and acceptance, and Trellis lifecycle handoff remains acceptance-only with current-session per-action/per-target authorization.
+- Define the project boundary as zero full retired-workflow identifier literals, zero dependencies, and zero dev-flow-originated discover/load/route/invoke/recommend/required/optional/fallback events targeting that workflow. Global skill management and platform-level triggering remain user/platform responsibilities.
+- Refresh Codex installation guidance from the package's own plugin manifest, root command layout, and package publish metadata without relying on an unrelated plugin package.
+
 ## [0.1.25] - 2026-06-29
 
 ### Fixed
@@ -149,7 +155,7 @@
 
 - Update `dev-flow-master` to remain the entry controller while delegating intent classification to `dev-flow-intent`.
 - Show the Phase 2 execution mode after orchestration and Git checks, with main-agent serial fallback/override.
-- Clarify the skill reuse policy: call Superpowers workflows directly when available, and absorb optional marketplace/local skill patterns without hard dependencies.
+- Clarify the skill reuse policy: call compatible installed workflow methods directly when available, and absorb optional marketplace/local skill patterns without hard dependencies.
 - Update installer doctor checks, command docs, plugin metadata, and public docs for the new route skills.
 - Keep core `SKILL.md` files short and move detailed governance into on-demand references.
 - Strengthen doctor checks for OpenCode install-surface allowlists, core mirror consistency, skill size, reference TOCs, repository URL drift, and lightweight opsx/OpenSpec contracts.

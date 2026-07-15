@@ -19,7 +19,11 @@ All user-facing replies and all generated artifact documents (requirements, desi
 
 Own Phase 3 run-to-completion execution after Phase 2 Gate is cleared. The main agent is coordinator only; all implementation tasks must be dispatched to sub-agents. Maintain Runtime Orchestration State, dispatch tasks under Git/writer limits, verify done signals, update progress, and move to acceptance when settled.
 
-Every implementation task, lightweight or heavyweight, must use `superpowers:test-driven-development` when available, or the local equivalent: failing test first, observed RED, minimal GREEN, refactor after green, and recorded evidence. This is a per-task execution rule, not a loop-layer responsibility.
+Every implementation task, lightweight or heavyweight, must follow the local TDD contract: failing test first, observed RED, minimal GREEN, and green-only refactor. Each run records the command, `exit_code`, and `output_summary`. 只有 OpenSpec 明确允许且用户批准的例外才能使用有记录的替代验证。
+
+Before claiming a task, batch, or workflow complete, apply fresh evidence-before-claim: rerun the proving command or browser check in the current round, read its complete result, and limit the claim to that result. Historical logs and implementer reports are context, not proof.
+
+Consume Trellis `spec_context` and `check` only from the current `capability_context` as supplemental constraints or evidence. A check may run only under the Phase 3 task/writer/path/permission boundary in `references/task-settlement-and-modes.md`; it never owns gates, settlement, or acceptance.
 
 After each implementing sub-agent reports `final_success` (or after the main agent applies and verifies a patch in patch mode), dispatch a reviewer sub-agent to independently verify the task diff and evidence before the task is settled. See `references/task-settlement-and-modes.md § Per-Task Reviewer Protocol`.
 

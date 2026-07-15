@@ -7,6 +7,9 @@
 - [Worktree-Parallel Execution](#worktree-parallel-execution)
 - [Shared-Working-Tree Serial Agent Execution](#shared-working-tree-serial-agent-execution)
 - [Per-Task Rules](#per-task-rules)
+- [Local TDD Evidence Contract](#local-tdd-evidence-contract)
+- [Fresh Evidence-Before-Claim](#fresh-evidence-before-claim)
+- [Trellis Check Writer Boundary](#trellis-check-writer-boundary)
 - [Per-Task Reviewer Protocol](#per-task-reviewer-protocol)
 - [Failure Handling](#failure-handling)
 
@@ -118,8 +121,8 @@ All implementation tasks in Phase 3 must be dispatched to sub-agents. The main a
 
 Each executing agent must:
 
-- use `superpowers:test-driven-development` when available; otherwise equivalent local TDD fallback. This applies to lightweight and medium/heavy implementation work.
-- record TDD evidence for each behavior change: test name/path, RED command and expected failure, GREEN command and pass result, refactor verification, or explicit user-approved exception
+- execute the local TDD contract for lightweight and medium/heavy work: failing test first, observed RED, minimal GREEN, and green-only refactor
+- record TDD evidence for each behavior change with the fields in § Local TDD Evidence Contract
 - run required diagnostics from `task-orchestration.md`
 - run required tests from the Executable Test Matrix
 - run additionally discovered related tests and update evidence
@@ -130,7 +133,42 @@ Each executing agent must:
 - measure performance when performance acceptance criteria exist
 - report completion only when required tests pass, diagnostics are clean, acceptance criteria are met, and done-signal evidence is complete
 
-Before claiming a task, batch, or full workflow is complete, use `superpowers:verification-before-completion` when available. If unavailable, run the equivalent evidence-before-claim gate: identify the proving command or browser evidence, run it fresh, read the output, and report only what the evidence supports.
+Before claiming a task, batch, or full workflow complete, enforce § Fresh Evidence-Before-Claim.
+
+## Local TDD Evidence Contract
+
+For every behavior-changing implementation task:
+
+1. Name the test or reproduction and write the failing test first.
+2. Run it before implementation; record `command`, `exit_code`, and `output_summary`, and confirm observed RED is the expected missing behavior rather than a test error.
+3. Implement only the minimal GREEN needed to pass, then rerun the focused and related tests with the same evidence fields.
+4. Refactor only while green and record the fresh post-refactor verification.
+
+只有 OpenSpec 明确允许且用户批准的例外才能跳过标准 TDD。Record the approving requirement and user evidence, the reason normal TDD cannot apply, and alternative proving commands; missing either approval makes the exception invalid.
+
+## Fresh Evidence-Before-Claim
+
+The fresh evidence-before-claim gate applies before every task, batch, or workflow completion claim:
+
+1. Identify the command or browser observation that directly proves that claim.
+2. Rerun it in the current round, read the complete result, and record `claim_scope`, `command_or_browser`, `observed_at`, `result`, `output_summary`, and `supported_conclusion` in a current-round evidence artifact.
+3. Report only the scope supported by that fresh result.
+
+历史日志、聊天记忆、实现者口头成功或先前轮次的绿灯都不是当前轮证明。Task evidence is stored in an artifact referenced by the existing `local_verification` or `quality_evidence` field of `final_success`; batch/workflow evidence is aggregated into `execution_settled` without changing signal ownership or reviewer settlement.
+
+## Trellis Check Writer Boundary
+
+Consume only the current `capability_context` Trellis `spec_context` and `check` records. Matched spec constraints supplement the current task context; they do not replace OpenSpec, the Executable Test Matrix, or local quality contracts.
+
+`trellis-check` may execute only when every condition is proven:
+
+- the current phase is Phase 3
+- the current task explicitly includes the check
+- the writer lane is assigned to its executor
+- 每个潜在写路径都在任务的精确写入范围内
+- 所有适用的 Git/副作用权限都已满足
+
+Unknown or false conditions make the check non-executable. When allowed, run it as an independent implementation task under normal settlement/reviewer rules and treat its output as supplemental evidence only. If Trellis or any component is unavailable, continue the same local TDD, verification, and test matrix. Acceptance never invokes a check that may write.
 
 ## Per-Task Reviewer Protocol
 
@@ -190,14 +228,14 @@ final_success:
   status: final_success
   changed_files: [list of paths]
   tdd_evidence:
-    mode: superpowers:test-driven-development | local_equivalent | approved_exception
-    red: <command and expected failure, or none with reason>
-    green: <command and pass result>
-    refactor: <verification after cleanup or "not needed">
+    mode: local_equivalent | approved_exception
+    red: <test name/path, failing test first command, exit_code, output_summary, and observed RED; or none with approved reason>
+    green: <minimal GREEN command, exit_code, output_summary, and pass result>
+    refactor: <green-only refactor verification command, exit_code, output_summary, or "not needed">
   diagnostics: <output or "clean">
   tests_run: [list of test names or suites]
-  local_verification: <scope/risk/test review evidence>
-  quality_evidence: <description or path>
+  local_verification: <scope/risk/test review and current-round evidence artifact path>
+  quality_evidence: <description or current-round evidence artifact path>
   git_state: <canonical integration state or "none — patch pending">
   patch_state: <patch file path or "none — direct write">
 ```

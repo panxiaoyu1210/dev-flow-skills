@@ -10,12 +10,12 @@
 
 ## Core Skill Boundaries
 
-Dev-flow owns routing, governance, persisted artifacts, handoffs, and evidence contracts. It should not duplicate mature external skill workflows when they are available.
+Dev-flow owns routing, governance, persisted artifacts, handoffs, and evidence contracts. Local clarification, debugging, per-task TDD, Git safety, and acceptance contracts are always sufficient to run the governed flow.
 
-Reuse policy:
+Optional capability policy:
 
-- Superpowers workflow skills are stable process dependencies. When a stage lists a required Superpowers sub-skill, load and follow that skill first, then adapt the result into dev-flow's signals, reports, gates, and artifacts.
-- Other installed or marketplace skills may be used when available, but dev-flow must not hard-depend on them unless they are part of the current environment. Copy or absorb their useful handling patterns into the focused dev-flow skill so the route still works when those skills are absent.
+- Follow `capability-adapters.md` before routing a high-value clarification or consuming Trellis context; persist its result in `capability_context`.
+- Route from local contracts when an adapter is unavailable or failed; optional capabilities never own routing or gate decisions.
 
 | Area | Skill | Owns |
 |---|---|---|
@@ -55,7 +55,7 @@ In this mode:
 - Do not recreate the full loop-only baseline artifacts or ask the user to re-confirm the same global requirements.
 - Use phase-level OpenSpec/opsx artifacts for phase requirements/tasks/spec deltas and implementation evidence.
 - Use `dev-flow-planning` to create the phase-internal task DAG, detailed Executable Test Matrix, and system-level checks.
-- Use `dev-flow-execution` to run TDD per task via `superpowers:test-driven-development` when available.
+- Use `dev-flow-execution` to run the local per-task RED, minimal GREEN, green-only refactor, and evidence contract.
 - Use `dev-flow-acceptance` to produce phase acceptance evidence for the loop eval.
 
 Exit this mode and return to the loop/user when:

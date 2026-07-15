@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [State and Gate Signal Protocol](#state-and-gate-signal-protocol)
+- [Capability Context](#capability-context)
 - [Stage Ownership Matrix](#stage-ownership-matrix)
 - [Phase Gates](#phase-gates)
 - [Completion Gate](#completion-gate)
@@ -21,6 +22,8 @@ Governed work must maintain persisted state from the first planning gate onward:
 Canonical location is `Docs/<topic>/` or `docs/<topic>/` beside the governed artifact set. If a legacy flat artifact set already exists, keep using that legacy location and record the chosen path in `dev-flow-state.md`.
 
 `dev-flow-state.md` must record every signal below with: signal name, producer, timestamp or ordering marker, evidence paths, gate status, user approval text when the signal records a gate passage or an authorization event, and stale/repair notes. Chat memory is never sufficient evidence for a governed signal or user approval.
+
+The same file must persist `capability_context` after optional capability detection. It is governed context, not a gate signal and not proof that a stage passed.
 
 | Signal | Produced by | Required evidence |
 |---|---|---|
@@ -109,6 +112,19 @@ execution_actor_decided:
   git_safe_reference: <timestamp of the git_safe signal this decision is based on>
 ```
 
+## Capability Context
+
+Use the complete schema and transition rules in `capability-adapters.md`. At entry and recovery, persist:
+
+- the complete `capability_context`, including `spec_context` evidence and `lifecycle_handoff` authorization state
+- its evidence paths and invalidation key
+
+Apply these gate effects:
+
+- Unavailable or failed optional capabilities do not block standard dev-flow and do not lower any gate.
+- A Trellis/OpenSpec conflict sets `requirement_change_pending`, stops the affected stage, and routes to planning and the corresponding gate.
+- When the adapter marks context or authorization stale, route to the current phase owner for refresh before advancing.
+
 Gate rules:
 
 - Do not enter governed planning without `routing_decided` choosing the governed path.
@@ -131,9 +147,10 @@ If a signal is missing, stale, or contradicted by actual Git/filesystem/task sta
 | Existing change/spec check | Main agent | No | Routing judgment only |
 | Intent classification | Main agent | No | Load `dev-flow-intent`; master emits final route |
 | Complexity routing | Main agent | No | Master classification after `intent_decided` |
+| Optional capability detection / refresh | Main agent or current phase owner | No | Read-only; follow `capability-adapters.md` and persist `capability_context` |
 | Planning path selection | Main agent | No | Master internal routing |
 | Review-mode decision | Main agent + user | No | `dev-flow-planning` |
-| Brainstorming handoff | Main agent coordinating brainstorming | Yes, only through required brainstorming path | `dev-flow-planning` |
+| High-value clarification | Main agent coordinating clarification | Yes, only through the optional adapter path | `dev-flow-planning`; use local clarification when the adapter is unavailable |
 | OpenSpec/opsx artifacts | Main agent | Yes for checker only | `dev-flow-planning`; must persist artifacts |
 | OpenSpec Baseline Gate | Main agent + checker + user | Yes, a checker required | Mandatory explicit approval |
 | Task orchestration | Main agent + checker | Yes, a checker required | `dev-flow-planning`; write DAG/test matrix |

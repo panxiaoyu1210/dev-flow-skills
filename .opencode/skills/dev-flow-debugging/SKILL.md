@@ -11,7 +11,7 @@ Own root-cause-first debugging before any fix. Selected after `dev-flow-intent` 
 
 Diagnose and guide fixes. Do not bypass `dev-flow-master` for complexity routing, gates, Git side effects, or final completion. If diagnosis reveals feature work, requirement change, UI/UX work, or review-only work, return that recommendation to master.
 
-**Optional helper skill:** Use `superpowers:systematic-debugging` when available. If unavailable, follow the systematic debugging protocol in `references/debugging-evidence.md`.
+本地根因协议始终是必需且自足的硬契约。其证据结构和升级阈值见 `references/debugging-evidence.md`；可选能力可以补充上下文，但不能替代该协议。
 
 ## Language Policy
 
@@ -19,10 +19,12 @@ All user-facing replies and all generated artifact documents (requirements, desi
 
 ## Core Contract
 
-1. Never prescribe a fix before reproducing the bug.
-2. Gather structured evidence before returning to dev-flow-master.
-3. Scope the fix (contained/moderate/broad) before routing.
-4. Emit debugging_report regardless of whether the route is lightweight or governed.
+1. 稳定复现并记录失败命令或步骤、退出码与输出摘要；先收集证据，再提出可证伪假设并定位根因。
+2. 修复前写回归失败测试（failing test first），运行它并记录 observed RED；失败必须来自待修行为，而不是测试错误。
+3. 只做针对根因的 minimal GREEN，随后重跑原失败检查、相关检查和回归验证；仅在绿色后重构。
+4. 不可复现时停止修复，报告尝试、证据缺口和安全下一步；不得猜测修复。
+5. Scope the fix (contained/moderate/broad) before routing.
+6. Emit debugging_report regardless of whether the route is lightweight or governed.
 
 ## References
 

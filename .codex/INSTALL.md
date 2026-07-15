@@ -11,7 +11,9 @@ This package includes a Codex plugin manifest at `.codex-plugin/plugin.json`, a 
 
 The loop-only baseline templates are bundled under `skills/dev-flow-loop/assets/baseline-templates/` as `requirements.md`, `high-level-design.md`, `detailed-design.md`, `test-plan.md`, and `test-cases.xlsx`. `dev-flow-master/templates/` no longer exists and `dev-flow doctor-codex` checks this placement.
 
-Codex plugin commands are discovered from a plugin-root `commands/` directory; they are not declared with a `commands` field in `.codex-plugin/plugin.json`. This matches the official Codex plugin examples and the Superpowers plugin structure.
+Codex plugin commands are discovered from a plugin-root `commands/` directory; they are not declared with a `commands` field in `.codex-plugin/plugin.json`. In this package, that behavior is reflected by the manifest's lack of a `commands` field, the root `commands/` files, and the `package.json` publish list that includes `commands`.
+
+The dev-flow core is self-contained: local clarification, root-cause analysis, per-task `failing test first` / `observed RED` / `minimal GREEN` / `green-only refactor`, and `fresh evidence-before-claim` do not require an external workflow package. Grill-me and Trellis are optional runtime/project adapters, not Codex installation prerequisites. This project does not install, disable, uninstall, or control platform-level triggering of globally managed skills.
 
 ## Codex App
 

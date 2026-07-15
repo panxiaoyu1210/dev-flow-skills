@@ -23,6 +23,7 @@ Loop Engineering is the outer control plane around dev-flow. It owns target rete
 - Do not create, update, pause, resume, or delete schedulers/automations; route those requests to `dev-flow-scheduler`.
 - Do not start commits, pushes, PRs, merges, worktrees, or paid/external actions automatically.
 - Keep loop state separate from `dev-flow-state.md`; phase-level dev-flow artifacts may reference loop IDs for traceability.
+- Consume Trellis only through the phase's current `capability_context`: spec/check evidence is supplemental, check execution stays inside the Phase 3 writer boundary, and read-only `phase_eval`/`loop_eval` never runs a possibly writing check or transfers baseline, gate, settlement, or signal ownership.
 
 ## Checker Subagent Authorization
 
@@ -54,9 +55,9 @@ All user-facing replies and all generated artifact documents (requirements, desi
    - Then get Execution Envelope Gate approval for the DAG, `auto_continue_scope`, and `dev_flow_phase_handoff`
 5. Execute each phase by handing to dev-flow in loop-authorized phase mode:
    - **Before starting execution**, verify `openspec_artifact_ready.checker_score ≥ 95` and `task_orchestration_ready.checker_score ≥ 95` are recorded from dev-flow-planning; do not start implementation if either score is absent or below threshold
-   - phase-level OpenSpec/opsx, phase-internal task DAG, detailed test matrix, TDD per task via superpowers, system-level acceptance evidence
+   - phase-level OpenSpec/opsx, phase-internal task DAG, detailed test matrix, local TDD per task with failing test first, observed RED, minimal GREEN, and green-only refactor, system-level acceptance evidence
 6. Record phase OpenSpec/opsx paths and status in `phase-artifacts.md` or `opsx-index.md`; do not duplicate the OpenSpec change directory under loop artifacts.
-7. Run a checker subagent for `phase_eval` after each phase or repair round; the checker scores phase artifacts from 0–100; record the score in `phase_eval_result.checker_score`; a phase passes only when checker score ≥ 95 with no P0/P1 finding; do not call `/dev-flow-cr` or emit `cr_report_ready` unless the user explicitly runs `/dev-flow-cr`.
+7. Run a checker subagent for `phase_eval` after each phase or repair round; first apply fresh evidence-before-claim to the phase result, then score phase artifacts from 0–100 and record `phase_eval_result.checker_score`; a phase passes only when checker score ≥ 95 with no P0/P1 finding; do not call `/dev-flow-cr` or emit `cr_report_ready` unless the user explicitly runs `/dev-flow-cr`.
 8. Load `dev-flow-loop-triage` when observing repo/CI/diff/issues/OpenSpec/dev-flow artifacts to produce a candidate inbox.
 9. Use maker-checker separation before freezing baseline, approving an envelope, or recommending handoff from triage.
 

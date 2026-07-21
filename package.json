@@ -1,6 +1,6 @@
 {
   "name": "dev-flow-skills",
-  "version": "0.1.25",
+  "version": "0.1.26",
   "description": "Governed development-flow skills for AI coding agents with independent CR, Loop Engineering delivery loops, read-only triage, and approved scheduler automation.",
   "type": "module",
   "bin": {
@@ -23,6 +23,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "test": "node --test",
     "doctor": "node bin/dev-flow.mjs doctor --target .",
     "dry-run:global": "node bin/dev-flow.mjs install --global --dry-run",
     "dry-run:local": "node bin/dev-flow.mjs install --target . --dry-run",

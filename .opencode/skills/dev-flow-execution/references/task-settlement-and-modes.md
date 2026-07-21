@@ -130,6 +130,8 @@ Each executing agent must:
 - measure performance when performance acceptance criteria exist
 - report completion only when required tests pass, diagnostics are clean, acceptance criteria are met, and done-signal evidence is complete
 
+Persist task-local commands, outcomes, and concise TDD/verification summaries in Git-tracked formal artifacts. Store raw checker responses, stdout/stderr captures, full logs, coverage, screenshots/video, browser traces, benchmark/timing data, debug dumps, and temporary patches under `.dev-flow/runtime/<run-id>/`; these transient files are not part of the task's Git integration state or staging allowlist. In a Git repository, follow `dev-flow-git` for local `.git/info/exclude` setup and explicit-path staging; do not use `git add -A` or `git add .`.
+
 Before claiming a task, batch, or full workflow is complete, use `superpowers:verification-before-completion` when available. If unavailable, run the equivalent evidence-before-claim gate: identify the proving command or browser evidence, run it fresh, read the output, and report only what the evidence supports.
 
 ## Per-Task Reviewer Protocol

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.26] - 2026-07-21
+
+### Changed
+- Replace unconditional checker-score retry loops with bounded convergence across planning, loop gates, phase evaluation, acceptance, and completion. Keep 95 as the quality target, allow evidence-complete 90–94 results when only non-material findings remain or score improvement plateaus, make `max_checker_evaluations` configurable with a default of 3 total evaluations per checkpoint, and prevent formatting/YAML-only findings from consuming the remaining budget unless a schema, validator, or consumer depends on the change.
+- Track canonical dev-flow, Loop, OpenSpec/opsx, code/config/test, report, and workbook artifacts while routing raw checker/test/browser/benchmark/debug output to locally excluded `.dev-flow/runtime/<run-id>/`; Git integration now requires an explicit staging allowlist instead of broad staging.
+
 ## [0.1.25] - 2026-06-29
 
 ### Fixed

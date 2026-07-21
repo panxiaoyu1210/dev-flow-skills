@@ -64,11 +64,29 @@ const planningStaleCheckerPhrasePatterns = [
   { pattern: 'independent orchestration checker scores/count', reason: 'task orchestration gate uses single checker_score; scores/count is stale multi-checker language' },
   { pattern: 'at least 2 independent checker subagents', reason: 'all gates now require 1 checker subagent; 2 checkers is stale language' },
 ];
+const unboundedConvergencePatterns = [
+  { pattern: 'auto-revise against all findings until checker score', reason: 'checker loops must use bounded convergence and material findings' },
+  { pattern: 'repeat until checker score ≥ 95', reason: '95 is a quality target, not an unconditional retry condition' },
+  { pattern: 'repeat until checker score >= 95', reason: '95 is a quality target, not an unconditional retry condition' },
+  { pattern: 'a phase passes only when checker score ≥ 95', reason: 'phase passage must use bounded convergence' },
+  { pattern: 'two checker evaluations', reason: 'checker evaluation budget is configurable through max_checker_evaluations' },
+];
 const loopTerminologyForbiddenPatterns = [
   { pattern: 'test design docs', reason: 'fourth baseline doc must be test plan (`test-plan.md`)' },
   { pattern: 'requirements, high-level design, detailed design, and test design', reason: 'use test plan (`test-plan.md`) as the fourth doc' },
   { pattern: 'test_design', reason: 'schema token must be test_plan' },
 ];
+const formalArtifactTrackingPhrases = [
+  'Git-tracked formal artifacts',
+  '.dev-flow/runtime/<run-id>/',
+  'staging allowlist',
+];
+const gitArtifactSafetyPhrases = [
+  '.git/info/exclude',
+  'git add -A',
+  'git add .',
+];
+const artifactTrackingPhrases = [...formalArtifactTrackingPhrases, ...gitArtifactSafetyPhrases];
 const loopReadOnlyPhrases = [
   'Default read-only',
   'Do not start `/dev-flow`',
@@ -86,7 +104,12 @@ const loopReadOnlyPhrases = [
   'auto-continue within baseline',
   'TDD per task via superpowers',
   'phase_eval_result.checker_score',
-  'checker score >= 95',
+  'quality target',
+  'convergence floor',
+  'max_checker_evaluations',
+  'defaults to 3',
+  'material finding',
+  'YAML-only',
   'dag_envelope_checker_score',
   'DAG and Envelope Quality Checklist',
   'openspec_artifact_ready.checker_score',
@@ -94,12 +117,19 @@ const loopReadOnlyPhrases = [
   'without requiring another slash command',
   'Do not start commits, pushes, PRs, merges, worktrees, schedulers, or external mutations automatically',
   'create, update, pause, resume, or delete schedulers/automations',
+  ...artifactTrackingPhrases,
 ];
 const loopDeliveryPhrases = [
   'loop_baseline_ready',
   'loop-only baseline artifacts',
   'checker_score',
   'quality_threshold: 95',
+  'quality target',
+  'convergence floor',
+  'max_checker_evaluations',
+  'defaults to 3',
+  'material finding',
+  'YAML-only',
   'Loop Phase DAG',
   'Docs/<topic>/loop/',
   'phase-artifacts.md',
@@ -115,8 +145,7 @@ const loopDeliveryPhrases = [
   'Freezing the initial baseline, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval',
   'exceeding baseline, budget, retry, stop-condition, or side-effect boundaries requires stopping and asking the user',
   'phase_eval',
-  'phase_eval threshold: 95',
-  'no P0/P1 finding',
+  'no P0/P1',
   'TDD per task via superpowers',
   'requirements, high-level design, detailed design, test plan (`test-plan.md`), and test case workbook (`test-cases.xlsx`)',
   'max phase repair rounds',
@@ -220,6 +249,7 @@ const governanceSemanticChecks = [
       'Loop Phase DAG node',
       'dev_flow_phase_handoff',
       'Do not ask the user to retype `/dev-flow`',
+      ...formalArtifactTrackingPhrases,
     ],
   },
   {
@@ -269,6 +299,7 @@ const governanceSemanticChecks = [
       'reviewer_blocked',
       'coordinator only',
       'All implementation tasks in Phase 3 must be dispatched to sub-agents',
+      ...formalArtifactTrackingPhrases,
     ],
   },
   {
@@ -292,6 +323,7 @@ const governanceSemanticChecks = [
       'shared_working_tree_applied',
       'applied_from_shared_worktree_patch',
       'worktree mode',
+      ...artifactTrackingPhrases,
     ],
   },
   {
@@ -333,11 +365,16 @@ const governanceSemanticChecks = [
       'TDD per task via superpowers',
       'quality_threshold: 95',
       'phase_eval',
-      'phase_eval threshold: 95',
-      'no P0/P1 finding',
+      'quality target is 95',
+      'convergence floor is 90',
+      'max_checker_evaluations',
+      'defaults to 3',
+      'material finding',
+      'YAML',
+      ...formalArtifactTrackingPhrases,
+      'no P0/P1',
       'test plan (`test-plan.md`)',
       'test-cases.xlsx',
-      'checker score >= 95',
       'dag_envelope_checker_score',
       'DAG and Envelope Quality Checklist',
       'openspec_artifact_ready.checker_score',
@@ -345,7 +382,7 @@ const governanceSemanticChecks = [
       'Freezing the initial baseline, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval',
       'exceeding baseline, budget, retry, stop-condition, or side-effect boundaries requires stopping and asking the user',
     ],
-    forbidden: loopTerminologyForbiddenPatterns,
+    forbidden: [...loopTerminologyForbiddenPatterns, ...unboundedConvergencePatterns],
   },
   {
     skill: 'dev-flow-loop-envelope',
@@ -360,6 +397,7 @@ const governanceSemanticChecks = [
       'confirmed_loop_baseline',
       'within_confirmed_baseline',
       'max_phase_repair_rounds',
+      'max_checker_evaluations',
       'max_full_loop_passes',
       'forbidden_side_effects',
       'schedule_kind',
@@ -426,8 +464,15 @@ const governanceSemanticChecks = [
       'system-level checks',
       'requirements/design/test coverage',
       'Executable Test Matrix',
+      ...formalArtifactTrackingPhrases,
+      'quality target is 95',
+      'convergence floor is 90',
+      'max_checker_evaluations',
+      'defaults to 3',
+      'material finding',
+      'YAML',
     ],
-    forbidden: [...staleSingleCheckerScorePatterns, ...planningStaleCheckerPhrasePatterns],
+    forbidden: [...staleSingleCheckerScorePatterns, ...planningStaleCheckerPhrasePatterns, ...unboundedConvergencePatterns],
   },
   {
     skill: 'dev-flow-planning',
@@ -445,7 +490,14 @@ const governanceSemanticChecks = [
       'integration points, external dependency failures, and offline/degraded modes',
       'system-level checks',
       'checker_score',
+      'quality target is 95',
+      'convergence floor is 90',
+      'max_checker_evaluations',
+      'defaults to 3',
+      'material finding',
+      'YAML',
     ],
+    forbidden: unboundedConvergencePatterns,
   },
 ];
 
@@ -1122,7 +1174,13 @@ function checkSourceSemantics() {
     {
       label: 'README lightweight artifact docs',
       filePath: path.join(packageRoot, 'README.md'),
-      required: opsxRequiredPhrases,
+      required: [...opsxRequiredPhrases, ...artifactTrackingPhrases],
+      forbidden: staleWorkflowPatterns,
+    },
+    {
+      label: 'README Chinese artifact tracking docs',
+      filePath: path.join(packageRoot, 'README.zh-CN.md'),
+      required: ['正式可追踪交付物', ...artifactTrackingPhrases.slice(1)],
       forbidden: staleWorkflowPatterns,
     },
     {
@@ -1134,7 +1192,7 @@ function checkSourceSemantics() {
     {
       label: 'workflow overview lightweight path',
       filePath: path.join(packageRoot, 'docs', 'workflow-overview.md'),
-      required: opsxRequiredPhrases,
+      required: [...opsxRequiredPhrases, ...artifactTrackingPhrases],
       forbidden: staleWorkflowPatterns,
     },
     {
@@ -1146,7 +1204,7 @@ function checkSourceSemantics() {
     {
       label: 'packaged OpenCode command',
       filePath: path.join(packageRoot, '.opencode', 'command', 'dev-flow.md'),
-      required: opsxRequiredPhrases,
+      required: [...opsxRequiredPhrases, ...artifactTrackingPhrases],
       forbidden: staleWorkflowPatterns,
     },
     {
@@ -1176,7 +1234,7 @@ function checkSourceSemantics() {
     {
       label: 'packaged Codex command',
       filePath: path.join(codexCommandsSourceRoot, 'dev-flow.md'),
-      required: opsxRequiredPhrases,
+      required: [...opsxRequiredPhrases, ...artifactTrackingPhrases],
       forbidden: staleWorkflowPatterns,
     },
     {
@@ -1206,7 +1264,7 @@ function checkSourceSemantics() {
     {
       label: 'packaged Claude command',
       filePath: path.join(claudeCommandsSourceRoot, 'dev-flow.md'),
-      required: opsxRequiredPhrases,
+      required: [...opsxRequiredPhrases, ...artifactTrackingPhrases],
       forbidden: staleWorkflowPatterns,
     },
     {

@@ -29,6 +29,7 @@ Use this command as the slash-command entrypoint for Dev Flow Skills.
 - Do not run CR automatically. After delivery, users may run `/dev-flow-cr` after their own acceptance.
 - If requirements change during execution, return to planning before continuing implementation.
 - If local files would be overwritten, preserve modified content unless the user explicitly approves a force operation.
+- In Git repositories, treat canonical formal artifacts (including dev-flow/Loop Markdown and test-case workbooks) as Git-tracked formal artifacts, store transient verification output under `.dev-flow/runtime/<run-id>/` with local `.git/info/exclude`, and stage only through the `dev-flow-git` staging allowlist; do not use `git add -A` or `git add .`.
 
 ## User Request
 

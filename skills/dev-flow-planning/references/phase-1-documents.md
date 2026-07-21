@@ -131,7 +131,7 @@ Score dimensions:
 - test plan coverage, including every likely behavior, edge case, failure mode, TDD entry point, and final system-level verification
 - no unresolved TBD/TODO/contradiction unless explicitly accepted as risk
 
-For loop-only baseline artifacts and medium/heavy OpenSpec baseline artifacts, the checker score must be at least 95 before asking the user to approve execution. If the score is below 95, revise the artifacts and run the checker again. Stop after 3 checker revision rounds and ask the user to narrow scope, accept a known risk, or pause.
+For loop-only baseline artifacts and medium/heavy OpenSpec baseline artifacts, use the bounded convergence policy in `dev-flow-planning/SKILL.md`. Resolve material findings and re-review only while the effective `max_checker_evaluations` budget remains. The budget defaults to 3. A score of 95 or higher is the quality target. A score from 90 through 94 may be presented for approval when all objective checks pass, no P0/P1 or unresolved material finding remains, and either the current checker reports only non-material findings or the latest re-review improves by fewer than 2 points. Below 90, or with any unresolved material finding when the budget is exhausted, the artifacts remain `not-ready`.
 
 Persist the checker score, checker identity/model when available, raw artifact scope, findings, and revision notes in `dev-flow-state.md` for normal governed planning, or in the loop baseline artifact for loop-owned docs.
 
@@ -141,11 +141,11 @@ For formal product/system OpenSpec artifacts, diagrams are governed assets. Use 
 
 ### Revision Loop
 
-- Apply requested revisions and re-present for confirmation.
+- Apply revisions only when they address a material finding or changed user requirement, then re-present for confirmation.
 - Track revision count per artifact set in `dev-flow-state.md`.
-- Maximum 3 checker revision rounds per artifact set per session.
-- After 3 revisions, present choices: accept current version, restart that document from brainstorming, or pause.
-- Do not silently apply a 4th revision.
+- Use the effective `max_checker_evaluations` value as the upper budget per artifact set; default to 3 when it is not configured.
+- If the result is still below the convergence floor or has a material finding when the configured budget is exhausted, present choices: narrow or restart the affected scope, explicitly accept a documented risk where the gate permits it, or pause.
+- Do not edit or re-review merely to raise the numeric score. In particular, do not reorder YAML keys, rename unconsumed fields, or rewrite equivalent prose unless a schema, validator, consumer, or user requirement makes that change material.
 
 ### OpenSpec Baseline Signal
 

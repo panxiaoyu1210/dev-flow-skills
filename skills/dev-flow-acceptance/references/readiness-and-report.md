@@ -5,6 +5,7 @@
 - [Inputs](#inputs)
 - [Final Acceptance Duties](#final-acceptance-duties)
 - [Delivery Report Contents](#delivery-report-contents)
+- [Evidence Storage and Git Tracking](#evidence-storage-and-git-tracking)
 - [Independent Acceptance Checker](#independent-acceptance-checker)
 - [Final Test Failure](#final-test-failure)
 - [Acceptance Readiness](#acceptance-readiness)
@@ -30,7 +31,7 @@ Do not rely on chat memory over files and actual state.
 
 1. Run final commands listed in the Executable Test Matrix.
 2. Run system-level checks that exercise the complete requested workflow or user/system journey.
-3. Verify no regressions from previously passing tests.
+3. Verify no regressions from previously passing tests; keep raw command output in the transient runtime area rather than formal artifact directories.
 4. Collect applicable quality evidence:
    - source/docs grounding
    - API contract
@@ -53,7 +54,7 @@ The report must include:
 
 - completed tasks with task IDs and branch/PR/commit/patch references
 - skipped/deferred tasks with reason, user/gate acceptance, and accepted risk
-- test results: command, scope, pass/fail count or summary, coverage if available
+- test results: command, scope, pass/fail count or concise summary, coverage summary if available
 - final Executable Test Matrix result, including commands run, commands not run, reasons, and acceptance impact
 - system-level test results and workflow coverage
 - requirements/design/test coverage map, including deferred items and accepted risks
@@ -68,6 +69,14 @@ The report must include:
 - scope changes since Phase 1/Phase 2 approval and whether gate re-entry occurred or was not required
 - known issues and follow-up items
 - Git integration/cleanup status
+
+## Evidence Storage and Git Tracking
+
+`delivery-report.md`, `dev-flow-state.md`, `progress.md`, `task-orchestration.md`, applicable final requested reports, OpenSpec/opsx artifacts, and formal Loop documents are Git-tracked formal artifacts when Git integration is authorized. Preserve them in the staging allowlist.
+
+Raw checker rounds, captured stdout/stderr, full test logs, coverage output, screenshots/video, browser traces, benchmark/timing files, debug dumps, temporary patches, and intermediate conversions are transient. Store workflow-created copies under `.dev-flow/runtime/<run-id>/` and rely on `dev-flow-git` to keep that path locally excluded through `.git/info/exclude`. Do not copy raw output into formal Markdown merely to make evidence durable; record the command, result, relevant counts, and concise findings instead.
+
+Before declaring `acceptance_ready`, inspect Git status and the staged path list when staging is authorized. A staged transient artifact is `not-ready` until it is unstaged without deleting the local evidence. Use the staging allowlist; do not use `git add -A` or `git add .`. Do not modify project `.gitignore` automatically and do not disturb unrelated user files.
 
 ## Independent Acceptance Checker
 
@@ -89,7 +98,7 @@ Do not pass the main agent's expected conclusion. The checker must verify:
 - `/opsx:verify <change>` evidence exists and aligns with actual changed files
 - unresolved risks are visible and not silently accepted
 
-Readiness requires `checker_score >= 95` and no P0/P1 finding. If any score is lower, route back to execution, planning, or the user depending on whether the gap is implementation, artifact, or scope/baseline related.
+Use bounded convergence for readiness. The quality target is 95. `max_checker_evaluations` is the configurable upper budget for this checkpoint and defaults to 3. A score from 90 through 94 may pass when all objective acceptance and system-level checks pass, no P0/P1 or unresolved material finding remains, and either the current checker reports only non-material findings or the latest re-review improves by fewer than 2 points. A material finding affects behavior, correctness, security, data integrity, compatibility, deployability, acceptance evidence, or a machine-consumed schema. Formatting, wording, YAML key order, or renaming an unconsumed field is non-material; do not route back, consume the remaining budget, or re-run the checker only to chase those points. Scores below 90 and unresolved material findings route back to execution, planning, or the user when the configured budget is exhausted.
 
 ## Final Test Failure
 
@@ -112,7 +121,7 @@ For governed medium/heavy work, report `ready-to-report` only when:
 6. system-level checks pass or are explicitly blocked with user-approved deferral
 7. requirements/design/test coverage map is complete
 8. task local verification evidence and TDD evidence exist for integrated work; independent CR evidence is optional and only produced by `/dev-flow-cr`
-9. checker score is >= 95 with no P0/P1 findings
+9. checker satisfies bounded convergence with no P0/P1 or unresolved material findings
 10. every task has a canonical Git/patch integration state defined by `dev-flow-git`: `merged`, `committed`, `pr_opened`, `direct_commit_complete`, `patch_ready`, `shared_working_tree_applied` (= changes made directly in the shared working tree by a serial sub-agent), `applied_from_shared_worktree_patch` (= patch generated by a worktree-isolated sub-agent then applied to the shared working tree), or `deferred_accepted`
 11. applicable quality gates are satisfied or marked N/A with reason, including `ui_ux_report` when `ui_runtime` risk applies
 12. no unresolved blockers remain
@@ -127,7 +136,7 @@ For lightweight opsx/OpenSpec work, report `ready-to-report` only when:
 6. required focused-route reports exist, including `debugging_report` for debugging work and `ui_ux_report` for UI runtime risk
 7. TDD evidence exists for implementation tasks or an approved exception is recorded
 8. final and system-level checks appropriate to the change pass or are explicitly marked N/A with reason
-9. checker score is >= 95 with no P0/P1 findings, unless the change is documentation-only with no behavior/config/test/user-visible impact
+9. checker satisfies bounded convergence with no P0/P1 or unresolved material findings; documentation-only changes with no behavior/config/test/user-visible impact retain their existing exception
 10. no unresolved blockers remain
 
 If any item is missing, report `not-ready` or `ready-for-review` and continue the appropriate dev-flow stage rather than claiming completion.

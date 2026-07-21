@@ -148,9 +148,9 @@ Agent:
 6. Enters planning mode when governed planning is required.
 7. Asks required clarification questions before writing or refreshing OpenSpec/opsx artifacts.
 8. Writes requirement/design/task/test evidence into the active OpenSpec/opsx artifact set after user confirmation.
-9. A checker subagent independently scores the baseline artifacts (score >= 95 required).
+9. A checker subagent independently scores the baseline artifacts (95 quality target; bounded convergence allowed from 90).
 10. Builds task orchestration, parallel-safety rules, and an executable test matrix.
-11. A checker subagent independently scores the orchestration plan (score >= 95 required).
+11. A checker subagent independently scores the orchestration plan using the same bounded convergence policy.
 12. Selects a Git strategy and shows the proposed execution actor at Phase 2 Gate.
 13. Dispatches each implementation task to a sub-agent; the main agent coordinates only and does not edit files directly.
 14. After each sub-agent reports final_success, a reviewer sub-agent independently verifies the diff and evidence before the task is settled.
@@ -163,15 +163,15 @@ Agent:
 
 Loop Engineering is an outer control plane, not a `/dev-flow` phase.
 
-- `/dev-flow-loop <goal>` preserves a goal across multiple dev-flow phases or repair rounds. It first gets Baseline Docs Gate approval for loop-only baseline artifacts: requirements, high-level design, detailed design, test plan (`test-plan.md`), and test case workbook (`test-cases.xlsx`) after a checker subagent records `checker_score >= 95`. These are outer-loop control artifacts, not `/dev-flow` implementation documents. Then it gets Execution Envelope Gate approval for the Loop Phase DAG, `auto_continue_scope`, `dev_flow_phase_handoff`, budgets, stop conditions, and side-effect boundaries. Only after both gates pass does it hand phases to dev-flow inside the approved envelope.
+- `/dev-flow-loop <goal>` preserves a goal across multiple dev-flow phases or repair rounds. It first gets Baseline Docs Gate approval for loop-only baseline artifacts: requirements, high-level design, detailed design, test plan (`test-plan.md`), and test case workbook (`test-cases.xlsx`) after a checker subagent records `checker_score` and applies bounded convergence. These are outer-loop control artifacts, not `/dev-flow` implementation documents. Then it gets Execution Envelope Gate approval for the Loop Phase DAG, `auto_continue_scope`, `dev_flow_phase_handoff`, budgets, stop conditions, and side-effect boundaries. Only after both gates pass does it hand phases to dev-flow inside the approved envelope.
 - `/dev-flow-triage` scans available evidence and builds a read-only Candidate Inbox.
 - `/dev-flow-scheduler` creates, updates, views, pauses, resumes, or deletes approved cron/heartbeat automations; it does not scan candidates or design loop logic.
 - Triage never writes code, commit, push, open PRs, create worktrees, mutate trackers, create schedulers, run `/dev-flow`, or run `/dev-flow-cr` automatically.
 - A confirmed delivery loop may auto-continue within baseline by handing phase-level work to dev-flow; phase implementation still uses OpenSpec/opsx artifacts, task orchestration, TDD per task via superpowers when available, acceptance evidence, and `phase_eval` checkpoints. `phase_eval` is not `/dev-flow-cr` and must not emit `cr_report_ready`.
 - Loop-owned artifacts live in `Docs/<topic>/loop/` or `docs/<topic>/loop/`. Phase OpenSpec/opsx originals stay in `openspec/changes/<change-id>/` or the project's standard OpenSpec/opsx location. Do not move or copy OpenSpec/opsx originals into the loop artifact directory; record phase mappings in `phase-artifacts.md` or `opsx-index.md`.
-- Loop `phase_eval threshold: 95`; auto-continue requires `phase_eval_result.checker_score >= 95` and no P0/P1 finding.
+- Loop checkpoints use quality target: 95 and convergence floor: 90. A 90–94 result may pass when objective checks pass, no P0/P1 or unresolved material finding remains, and either the current checker reports only non-material findings or the latest re-review improves by fewer than 2 points.
 - Freezing the initial baseline, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval; exceeding baseline, budget, retry, stop-condition, or side-effect boundaries requires stopping and asking the user.
-- Machine-checkable loop terms: `loop_baseline_ready`, `checker_score`, `quality_threshold: 95`, `Baseline Docs Gate`, `Execution Envelope Gate`, `within_confirmed_baseline`, `phase-level OpenSpec/opsx`, and default max phase repair rounds of 3.
+- Machine-checkable loop terms: `loop_baseline_ready`, `checker_score`, `quality_threshold: 95` (retained as the quality-target compatibility field), `max_checker_evaluations`, `Baseline Docs Gate`, `Execution Envelope Gate`, `within_confirmed_baseline`, `phase-level OpenSpec/opsx`, and default max phase repair rounds of 3. `max_checker_evaluations` is configurable and defaults to 3 total evaluations per checkpoint; it is an upper budget, so YAML-only formatting or unconsumed-field changes do not force another evaluation.
 - If a candidate should be implemented or reviewed, the agent asks a concrete handoff question. After the user explicitly confirms a specific candidate, the agent may enter the equivalent `/dev-flow` or `/dev-flow-cr` owner flow without requiring another slash command.
 - Recurring repo scans should use read-only Candidate Inbox prompts; automatic fixes and full code review stay off by default.
 
@@ -204,6 +204,8 @@ For `/dev-flow-loop` delivery loops only, loop baseline artifacts may include:
 - `Docs/<topic>/loop/phase-artifacts.md` or `Docs/<topic>/loop/opsx-index.md`
 
 Those loop artifacts preserve the outer goal and approved envelope. Phase implementation still uses OpenSpec/opsx originals in `openspec/changes/<change-id>/` or the active project's standard OpenSpec/opsx location.
+
+In Git repositories, the canonical artifacts listed above are Git-tracked formal artifacts, including their Markdown state/report files and `test-cases.xlsx`. Raw checker rounds, captured stdout/stderr, full logs, coverage, screenshots/video, browser traces, benchmark/timing output, debug dumps, temporary patches, and conversion intermediates are transient. Store workflow-created transient output under `.dev-flow/runtime/<run-id>/`, keep it locally excluded through `.git/info/exclude` without automatically modifying project `.gitignore`, and stage formal changes through an explicit staging allowlist rather than `git add -A` or `git add .`.
 
 Example layout:
 
@@ -267,7 +269,7 @@ Doctor commands also check `/dev-flow-scheduler`, approved automation boundaries
 - Shared working-tree writes must be serialized.
 - Tasks with high file or symbol overlap must be serialized even when worktrees are available.
 - Parallel no-worktree mode should use patch generation plus main-agent serial apply; a reviewer sub-agent verifies the applied diff before settling.
-- All gate-impacting scores use an independent checker subagent with raw artifacts; the main agent does not self-score for gate passage. All gates (planning, loop, acceptance, completion) require checker score >= 95.
+- All gate-impacting scores use an independent checker subagent with raw artifacts; the main agent does not self-score for gate passage. Gates target 95 but may converge at 90–94 when objective evidence passes, no P0/P1 or unresolved material finding remains, and only non-material findings remain or score improvement plateaus.
 - Final acceptance requires task local verification evidence and canonical Git integration states for every task.
 - Final acceptance requires TDD evidence for implementation tasks, system-level checks, requirements/design/test coverage, acceptance checker evidence, plus phase-level OpenSpec/opsx evidence for loop-authorized phases.
 - Independent CR is user-triggered through `/dev-flow-cr` after the user accepts or inspects delivered work; it is not an automatic `/dev-flow` stage.
@@ -276,3 +278,4 @@ Doctor commands also check `/dev-flow-scheduler`, approved automation boundaries
 - Scheduler changes are isolated in `/dev-flow-scheduler` and require explicit approval for create/update/pause/resume/delete actions.
 - Local modifications are protected by manifest checksums during update.
 - Final success requires verification evidence, not only agent self-reporting.
+- Canonical formal artifacts remain tracked; transient verification output remains locally excluded and outside the staged diff.

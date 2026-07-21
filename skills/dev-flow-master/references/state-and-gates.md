@@ -3,6 +3,8 @@
 ## Table of Contents
 
 - [State and Gate Signal Protocol](#state-and-gate-signal-protocol)
+- [Artifact Tracking Policy](#artifact-tracking-policy)
+- [Bounded Convergence Policy](#bounded-convergence-policy)
 - [Stage Ownership Matrix](#stage-ownership-matrix)
 - [Phase Gates](#phase-gates)
 - [Completion Gate](#completion-gate)
@@ -21,6 +23,12 @@ Governed work must maintain persisted state from the first planning gate onward:
 Canonical location is `Docs/<topic>/` or `docs/<topic>/` beside the governed artifact set. If a legacy flat artifact set already exists, keep using that legacy location and record the chosen path in `dev-flow-state.md`.
 
 `dev-flow-state.md` must record every signal below with: signal name, producer, timestamp or ordering marker, evidence paths, gate status, user approval text when the signal records a gate passage or an authorization event, and stale/repair notes. Chat memory is never sufficient evidence for a governed signal or user approval.
+
+### Artifact Tracking Policy
+
+In a Git repository, canonical dev-flow and Loop documents are Git-tracked formal artifacts together with requested code/config/tests and OpenSpec/opsx artifacts. This includes `dev-flow-state.md`, `task-orchestration.md`, `progress.md`, `delivery-report.md`, final requested reports, and the formal Loop documents listed by `dev-flow-loop`. Keep them concise but do not exclude them merely because they are Markdown, state, or report files.
+
+Raw checker rounds, captured stdout/stderr, full logs, coverage, screenshots/video, browser traces, benchmark/timing output, debug dumps, temporary patches, and conversion intermediates are transient. Store workflow-created transient files under `.dev-flow/runtime/<run-id>/`; in Git repositories use the local `.git/info/exclude` policy from `dev-flow-git` and do not modify project `.gitignore` automatically. Canonical signals and reports retain commands, outcomes, and concise summaries, while runtime paths are local supporting evidence and are never required in the staged diff.
 
 | Signal | Produced by | Required evidence |
 |---|---|---|
@@ -109,17 +117,35 @@ execution_actor_decided:
   git_safe_reference: <timestamp of the git_safe signal this decision is based on>
 ```
 
+### Bounded Convergence Policy
+
+Across planning, loop, phase-eval, acceptance, and completion, the quality target is 95 and the convergence floor is 90. `max_checker_evaluations` is the configurable upper budget for total checker evaluations at one checkpoint and defaults to 3 when no explicit user, project, or approved Loop Envelope value exists. Loop work inherits the approved envelope value; non-loop dev-flow records the effective value in `dev-flow-state.md` before the first checker checkpoint.
+
+For non-loop dev-flow, persist the effective policy once and update it only when the user or project configuration changes:
+
+```yaml
+checker_policy:
+  quality_target: 95
+  convergence_floor: 90
+  max_checker_evaluations: <configured value or 3>
+```
+
+A score from 90 through 94 may pass when every objective check and acceptance criterion passes, no P0/P1 or unresolved material finding remains, and either the current checker reports only non-material findings or the latest re-review improves by fewer than 2 points. A material finding affects behavior, correctness, security, data integrity, compatibility, deployability, acceptance evidence, or a machine-consumed schema. Equivalent prose, formatting, YAML key order, or renaming an unconsumed field is non-material. Do not edit implementation or state artifacts, and do not re-run a checker, solely to raise the number or consume the remaining budget. YAML remains material when a schema, validator, command, or downstream consumer depends on it.
+
+Scores below 90 or unresolved material findings remain `not-ready`. When `max_checker_evaluations` is reached, report the concrete blocker or required risk decision instead of repeating equivalent work. The policy imposes no fixed numeric range on the user-configured value, but the configured budget cannot suppress the mandatory initial checker. The agent must not increase it after the checkpoint starts without explicit user approval. Existing `quality_threshold: 95` fields are compatibility fields for the quality target; do not rename, reorder, or backfill persisted YAML solely because of this policy.
+
 Gate rules:
 
 - Do not enter governed planning without `routing_decided` choosing the governed path.
 - Do not draft or update OpenSpec/opsx baseline artifacts without `documentation_start_approved`.
-- Do not present OpenSpec Baseline Gate as ready without `openspec_artifact_ready` and `checker_score >= 95` for medium/heavy work. **Loop-authorized exception:** when all five loop-authorized phase mode conditions are met (see `references/routing-and-complexity.md § Loop-Authorized Phase Mode`), the Execution Envelope Gate approval covers user consent for phases inside the confirmed baseline. Do not re-prompt the user for a separate OpenSpec Baseline Gate approval; record `loop_authorized: true`, the `loop_id`, and the `loop_baseline_ready` + `loop_envelope_ready` signal paths in `dev-flow-state.md`, then proceed.
+- Do not present OpenSpec Baseline Gate as ready without `openspec_artifact_ready` satisfying bounded convergence for medium/heavy work. **Loop-authorized exception:** when all five loop-authorized phase mode conditions are met (see `references/routing-and-complexity.md § Loop-Authorized Phase Mode`), the Execution Envelope Gate approval covers user consent for phases inside the confirmed baseline. Do not re-prompt the user for a separate OpenSpec Baseline Gate approval; record `loop_authorized: true`, the `loop_id`, and the `loop_baseline_ready` + `loop_envelope_ready` signal paths in `dev-flow-state.md`, then proceed.
 - Do not present Phase 2 Gate as ready without `task_orchestration_ready` and `git_safe`. **Loop-authorized exception:** same five conditions as above — do not re-prompt for a separate Phase 2 Gate approval; record the same `loop_authorized` fields in `dev-flow-state.md` and proceed.
 - Do not execute code/config/test/user-visible changes until `openspec_artifact_ready` or `lightweight_artifact_ready` records the OpenSpec/opsx change context.
 - Do not accept lightweight work until `opsx_apply_complete` and `opsx_verify_complete` are recorded.
 - Do not enter Phase 3 until Phase 2 Gate has presented the proposed execution actor and recorded `execution_actor_decided`. **Loop-authorized exception:** same five conditions — record `execution_actor_decided` with `loop_authorized: true`, `loop_id`, and the envelope reference.
 - Do not enter acceptance until execution reports all batches completed, user/gate-accepted as deferred, or replanned under `execution_settled`.
 - Do not report `ready-to-report` without `acceptance_ready`.
+- Do not stage or commit transient runtime evidence; use the `dev-flow-git` staging allowlist, keep canonical formal artifacts tracked, and do not use `git add -A` or `git add .`.
 - For `cr_report_ready`: if `cr_blocked` → do not merge/ship; else → proceed to delivery or defer. If `cr_needs_defer_decision`: present the deferred findings to the user with their severity scores and ask for an explicit accept/defer/fix decision before proceeding to merge or delivery.
 
 If a signal is missing, stale, or contradicted by actual Git/filesystem/task state, route back to the owning skill for repair before advancing. Chat memory is never sufficient evidence.
@@ -218,7 +244,7 @@ For governed medium/heavy work, the master may report `ready-to-report` only aft
 6. every task uses one canonical Git integration state from `dev-flow-git`: `merged`, `committed`, `pr_opened`, `direct_commit_complete`, `patch_ready`, `shared_working_tree_applied`, `applied_from_shared_worktree_patch`, or `deferred_accepted`
 7. task local verification evidence and TDD evidence exist for integrated work; independent CR is optional and user-triggered through `/dev-flow-cr`
 8. requirements/design/test coverage map is complete or explicitly deferred by the user
-9. checker score >= 95 with no P0/P1 finding
+9. checker satisfies bounded convergence with no P0/P1 or unresolved material finding
 10. applicable quality-gate evidence is recorded, including `ui_ux_report` when `ui_runtime` risk applies
 11. no unresolved blocker remains
 
@@ -232,7 +258,7 @@ For lightweight work, the master may report `ready-to-report` only after `dev-fl
 6. required focused-route evidence exists, including `debugging_report` for debugging work and `ui_ux_report` for UI runtime risk
 7. TDD evidence exists for implementation tasks or an approved exception is recorded
 8. final and system-level checks appropriate to the change pass or are explicitly marked N/A with reason
-9. checker score >= 95 with no P0/P1 finding, unless the change is documentation-only with no behavior/config/test/user-visible impact
+9. checker satisfies bounded convergence with no P0/P1 or unresolved material finding, unless the change is documentation-only with no behavior/config/test/user-visible impact
 10. no unresolved blocker remains
 
 After reporting `ready-to-report`, suggest that the user perform their own acceptance and then run `/dev-flow-cr` for independent post-acceptance code review when they want CR. Do not run CR automatically as part of `/dev-flow`.

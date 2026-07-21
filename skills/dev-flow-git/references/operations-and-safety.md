@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Capability and Permission Check](#capability-and-permission-check)
+- [Artifact Tracking and Staging](#artifact-tracking-and-staging)
 - [Worktree Mode Rules](#worktree-mode-rules)
 - [Branch-Only Rules](#branch-only-rules)
 - [Shared-Working-Tree Serial Agent Rules](#shared-working-tree-serial-agent-rules)
@@ -23,6 +24,24 @@ Before selecting any mode that creates commits, pushes branches, opens PRs, or m
 - repository policy constraints such as protected branches or required checks, if discoverable
 
 If any required capability or authorization is missing, use `patch-ready mode` and state that implementation/tests can continue without commit/PR/merge automation.
+
+## Artifact Tracking and Staging
+
+Classify files by lifecycle role, not extension. A Markdown or spreadsheet file is tracked when it is a canonical formal artifact; a Markdown file containing raw checker output is still transient.
+
+Git-tracked formal artifacts include requested source/config/test changes, OpenSpec/opsx artifacts, `dev-flow-state.md`, `task-orchestration.md`, `progress.md`, `delivery-report.md`, final requested CR/debugging/UI reports, and Loop artifacts `requirements.md`, `high-level-design.md`, `detailed-design.md`, `test-plan.md`, `test-cases.xlsx`, `loop-phase-dag.md`, `loop-envelope.md`, `loop-state.md`, `phase-artifacts.md`, and `opsx-index.md`.
+
+Transient process artifacts include raw checker prompts/responses and round-by-round reports, captured stdout/stderr, full test logs, coverage output, screenshots, videos, browser traces, benchmark and timing data, debug dumps, temporary patches, and intermediate conversion files. Store workflow-created transient output under `.dev-flow/runtime/<run-id>/`, not under `Docs/<topic>/`, the Loop artifact directory, or OpenSpec/opsx source directories. Formal artifacts record commands, results, and concise evidence summaries rather than copying raw output.
+
+In a Git repository:
+
+1. Check whether the project already provides an ignored runtime/evidence location. Otherwise use `.dev-flow/runtime/<run-id>/` and add `.dev-flow/runtime/` to the repository-local `.git/info/exclude` (resolve it with `git rev-parse --git-path info/exclude`). Do not modify the project `.gitignore` unless the user explicitly requests a shared ignore rule.
+2. Build a staging allowlist from the implementation scope plus canonical formal artifacts for the active request. Do not use `git add -A` or `git add .` in dev-flow-managed staging.
+3. Inspect `git status --short`, stage only explicit allowlisted paths, then inspect `git diff --cached --name-only` and `git status --short` again.
+4. If a transient artifact created by the current workflow was staged, unstage only that path without deleting it. Never unstage, delete, ignore, or overwrite unrelated user files.
+5. If the user explicitly promotes transient evidence into a durable deliverable, move or summarize it into a canonical artifact path before tracking it. Do not track the runtime copy.
+
+Patch-ready mode still forbids staging. These rules apply only after the selected integration mode and user authorization allow staging or committing.
 
 ## Worktree Mode Rules
 
@@ -59,7 +78,7 @@ Rules:
 ### PR/review/merge mode
 
 1. Confirm correct branch/worktree.
-2. Stage and commit changes.
+2. Stage through the artifact staging allowlist and commit the reviewed staged diff.
 3. Open PR targeting integration branch.
 4. Record local verification evidence when external review tooling is unavailable; this does not replace `/dev-flow-cr` or independent checker gates.
 5. Merge only after review passes and required checks allow it.
@@ -67,7 +86,7 @@ Rules:
 ### Solo-dev direct-commit mode
 
 1. Confirm correct approved branch/worktree.
-2. Stage and commit changes.
+2. Stage through the artifact staging allowlist and commit the reviewed staged diff.
 3. Perform and record local verification evidence.
 4. Do not push or merge unless explicitly approved.
 

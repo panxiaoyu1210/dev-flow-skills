@@ -24,13 +24,13 @@ Focused routes:
 
 `dev-flow-planning` prevents premature design by requiring clarification before OpenSpec/opsx baseline artifacts are written or refreshed. It owns OpenSpec baseline refinement, independent checker review, task orchestration, task DAGs, and the executable test matrix.
 
-When `/dev-flow-loop` owns the outer goal, the loop first discusses requirements, blockers, and design options with the user, then generates loop-only baseline artifacts: requirements, high-level design, detailed design, test plan (`test-plan.md`), and test case workbook (`test-cases.xlsx`). These are outer-loop control artifacts, not `/dev-flow` implementation documents. They are reviewed by at least 2 independent checker subagents and auto-revised until all scores are at least 95 or a blocker is reached. The user approves the Baseline Docs Gate first; then the user approves the Execution Envelope Gate for the Loop Phase DAG, `auto_continue_scope`, `dev_flow_phase_handoff`, budgets, stop conditions, and side-effect boundaries before implementation starts.
+When `/dev-flow-loop` owns the outer goal, the loop first discusses requirements, blockers, and design options with the user, then generates loop-only baseline artifacts: requirements, high-level design, detailed design, test plan (`test-plan.md`), and test case workbook (`test-cases.xlsx`). These are outer-loop control artifacts, not `/dev-flow` implementation documents. One independent checker subagent reviews each checkpoint. The quality target is 95 and the convergence floor is 90; configurable `max_checker_evaluations` defaults to 3 total evaluations per checkpoint and is an upper budget, so the loop never repeats only for non-material or YAML-only formatting findings. The user approves the Baseline Docs Gate first; then the user approves the Execution Envelope Gate for the Loop Phase DAG, `auto_continue_scope`, `dev_flow_phase_handoff`, budgets, stop conditions, and side-effect boundaries before implementation starts.
 
 Loop-owned artifacts live under `Docs/<topic>/loop/` or `docs/<topic>/loop/`. That directory contains baseline docs, `loop-phase-dag.md`, `loop-envelope.md`, `loop-state.md`, and a phase index such as `phase-artifacts.md` or `opsx-index.md`. OpenSpec/opsx originals stay in `openspec/changes/<change-id>/` or the project's standard OpenSpec/opsx location. Do not move or copy OpenSpec/opsx originals into the loop artifact directory; the loop index links to them.
 
 Freezing the initial baseline, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval. Exceeding baseline, budget, retry, stop-condition, or side-effect boundaries requires stopping and asking the user.
 
-Machine-checkable loop terms for implementations: `loop_baseline_ready`, `independent_checker_scores`, `independent_checker_count`, `quality_threshold: 95`, `phase_eval threshold: 95`, `no P0/P1 finding`, `Baseline Docs Gate`, `Execution Envelope Gate`, `within_confirmed_baseline`, `auto-continue within baseline`, `TDD per task via superpowers`, and max phase repair rounds of 3.
+Machine-checkable loop terms for implementations: `loop_baseline_ready`, `checker_score`, `quality_threshold: 95` (quality-target compatibility field), `convergence floor: 90`, `max_checker_evaluations` (configurable, defaults to 3), `no P0/P1 finding`, `material finding`, `Baseline Docs Gate`, `Execution Envelope Gate`, `within_confirmed_baseline`, `auto-continue within baseline`, `TDD per task via superpowers`, and max phase repair rounds of 3.
 
 ## Lightweight path
 
@@ -39,6 +39,8 @@ All implementation work uses the active project's OpenSpec/opsx workflow, normal
 ## Phase 2: Task orchestration and Git safety
 
 `dev-flow-planning` turns approved docs into task orchestration, DAG batches, parallel-safety rules, and an executable test matrix. `dev-flow-git` chooses the correct isolation and side-effect model: worktree, branch, shared working tree, patch-ready mode, PR mode, rollback, or conflict handling.
+
+In Git repositories, requested source/config/tests, OpenSpec/opsx artifacts, canonical dev-flow Markdown, Loop Markdown, and formal test workbooks are Git-tracked formal artifacts. Raw checker rounds, stdout/stderr captures, logs, coverage, screenshots/video, browser traces, benchmarks/timing, debug dumps, temporary patches, and conversion intermediates go under `.dev-flow/runtime/<run-id>/` with local `.git/info/exclude`. Git integration uses an explicit staging allowlist and never uses broad `git add -A` or `git add .` staging.
 
 At Phase 2 Gate, the master presents orchestration results, overlap risks, Git checks, and the proposed execution actor. Multi-agent execution is recommended only when task batches, agent cap, Git isolation, overlap risk, and writer limits support it; direct concurrent writers and worktree creation require explicit user approval.
 

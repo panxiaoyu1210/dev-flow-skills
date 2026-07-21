@@ -18,6 +18,7 @@ This skill owns Git isolation mode selection, branch/worktree lifecycle, integra
 - Default to patch-ready mode when commits, pushes, PRs, merges, or destructive actions are not explicitly authorized or supported.
 - Use exact canonical integration state names in persisted artifacts.
 - Preserve unrelated user changes and avoid staging/committing them unless explicitly authorized.
+- Classify artifacts by role, not extension: keep canonical dev-flow, Loop, OpenSpec/opsx, code, config, and test artifacts eligible for tracking; isolate transient verification output under `.dev-flow/runtime/<run-id>/` and stage only through an explicit staging allowlist.
 
 ## References
 

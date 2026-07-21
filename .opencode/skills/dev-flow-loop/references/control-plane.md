@@ -8,6 +8,7 @@
 - [Delivery Loop Lifecycle](#delivery-loop-lifecycle)
 - [Baseline Document Quality Checklist](#baseline-document-quality-checklist)
 - [Loop Phase DAG](#loop-phase-dag)
+- [Bounded Convergence Policy](#bounded-convergence-policy)
 - [Auto-Continue Policy](#auto-continue-policy)
 - [Loop Primitives](#loop-primitives)
 - [Loop Signal Fields](#loop-signal-fields)
@@ -57,9 +58,11 @@ The loop artifact directory may contain only outer-loop control artifacts:
 - `loop-state.md`
 - `phase-artifacts.md` or `opsx-index.md`
 
+These are Git-tracked formal artifacts when the active repository and integration mode permit tracking. Do not place raw checker responses, test logs, coverage, screenshots/video, browser traces, benchmark/timing files, debug dumps, or temporary patches in this directory; store workflow-created transient evidence under `.dev-flow/runtime/<run-id>/` using the local `.git/info/exclude` policy from `dev-flow-git`. Use its staging allowlist for formal artifacts; do not use `git add -A` or `git add .`.
+
 OpenSpec/opsx originals remain in the project's standard location, normally `openspec/changes/<change-id>/`. Do not move or copy OpenSpec originals into the loop directory. The loop directory records links, status, evidence paths, and phase mappings only.
 
-Use `phase-artifacts.md` or `opsx-index.md` as the phase artifact index. Each row should record: phase ID, OpenSpec/opsx change ID, canonical change path, current status, related `task-orchestration.md`, verification evidence, `phase_eval_result`, and unresolved risks.
+Use `phase-artifacts.md` or `opsx-index.md` as the phase artifact index. Each row should record: phase ID, OpenSpec/opsx change ID, canonical change path, current status, related `task-orchestration.md`, verification command/result summary, `phase_eval_result`, and unresolved risks. Raw evidence remains local runtime output and is not copied into the index.
 
 Example:
 
@@ -110,9 +113,9 @@ openspec/
    - Spawn a checker subagent to score the full artifact set (requirements, HLD, DDD, test-plan, test-cases.xlsx) from 0–100 against `§Baseline Document Quality Checklist`
    - This checker is mandatory and preauthorized by the loop gate once the artifacts exist; do not ask the user separately whether to run it
    - The main agent must not self-score or present Baseline Docs Gate readiness without this checker result
-   - Record the score in `loop_baseline_ready.checker_score`; the gate condition is checker score ≥ 95
-   - Auto-revise against all findings
-   - Repeat until checker score ≥ 95 or a blocker is found
+   - Record the score in `loop_baseline_ready.checker_score`; 95 is the quality target and 90 is the convergence floor
+   - Revise only material findings, then re-review while the effective `max_checker_evaluations` budget remains
+   - A 90–94 score may pass under `§Bounded Convergence Policy`; otherwise stop at the configured evaluation limit and report the blocker
 5. Present final loop baseline artifacts and ask for Baseline Docs Gate approval. Do not execute implementation before this approval.
 6. Write the Loop Phase DAG and Execution Envelope proposal:
    - Loop Phase DAG: all phase nodes with unique IDs (P-01, P-02 …), explicit dependency edges, entry/exit criteria per phase, repair policy (max rounds + fallback), parallel-phase independence assertions
@@ -121,13 +124,13 @@ openspec/
    - Spawn a checker subagent to score the Loop Phase DAG and Execution Envelope 0–100 against `§DAG and Envelope Quality Checklist`
    - This checker is mandatory and preauthorized by the loop gate once the DAG/envelope exist; do not ask the user separately whether to run it
    - The main agent must not self-score or present Execution Envelope Gate readiness without this checker result
-   - Record the score in `loop_control_ready.dag_envelope_checker_score`; the gate condition is checker score ≥ 95
-   - Auto-revise against all findings
-   - Repeat until checker score ≥ 95 or a blocker is found
+   - Record the score in `loop_control_ready.dag_envelope_checker_score`; 95 is the quality target and 90 is the convergence floor
+   - Revise only material findings, then re-review while the effective `max_checker_evaluations` budget remains
+   - A 90–94 score may pass under `§Bounded Convergence Policy`; otherwise stop at the configured evaluation limit and report the blocker
 8. Present the Loop Phase DAG, `auto_continue_scope`, `dev_flow_phase_handoff`, budgets, stop conditions, and side-effect boundaries — together with the DAG/Envelope checker score — for Execution Envelope Gate approval.
 9. Freeze the baseline only after Baseline Docs Gate and Execution Envelope Gate are both approved. The moment Execution Envelope Gate is approved, update the `auto_continue_scope` field inside `loop-envelope.md` itself from its pre-approval draft value (e.g. `disabled`) to the approved value (e.g. `within_confirmed_baseline`); do not leave the envelope document holding a stale pre-approval value while only `loop-state.md` records the approved value. A reader of `loop-envelope.md` alone must see the current authorized scope, not a draft note saying what it will become.
 10. For each ready phase, hand off to dev-flow in loop-authorized phase mode:
-   - **Before starting implementation**, verify that `openspec_artifact_ready.checker_score ≥ 95` and `task_orchestration_ready.checker_score ≥ 95` are recorded from dev-flow-planning; if either is absent or below threshold, wait for the planning checker to complete before proceeding
+   - **Before starting implementation**, verify that `openspec_artifact_ready.checker_score` and `task_orchestration_ready.checker_score` are recorded and satisfy dev-flow-planning's bounded convergence policy; if either is absent or `not-ready`, wait for the planning checker decision before proceeding
    - preserve the loop goal and baseline ID
    - create phase-level OpenSpec/opsx spec/tasks instead of rewriting the loop-only baseline artifacts
    - keep phase-level OpenSpec/opsx originals in `openspec/changes/<change-id>/` or the project's standard OpenSpec/opsx location
@@ -138,14 +141,14 @@ openspec/
    - collect acceptance and system-level evidence
 11. Run checker `phase_eval` after each phase or repair round using a checker subagent; this checker is mandatory and preauthorized by the loop gate for read-only review of phase evidence. The checker scores phase artifacts from 0–100; record `phase_eval_result.checker_score`. `phase_eval` is not `/dev-flow-cr`, must not emit `cr_report_ready`, and must not use the independent CR report schema.
 12. Decide:
-   - continue to next phase only when `phase_eval` checker score ≥ 95, no P0/P1 finding exists, and dependencies are ready
-   - run a repair round when issues are inside baseline and budget remains
+   - continue to the next phase when `phase_eval` satisfies `§Bounded Convergence Policy` and dependencies are ready
+   - run a repair round only for material issues inside baseline while budget remains
    - stop and ask the user when a stop condition is met
 13. Emit final loop report with phase outcomes, evidence, scores, residual risks, and recommended next action.
 
 ## Baseline Document Quality Checklist
 
-A checker subagent scores the full baseline artifact set using this checklist. Score = (YES items / applicable items) × 100, rounded to the nearest integer. Items marked "If applicable" are excluded from the denominator when the relevant design element does not exist in the project. Auto-revise against all findings and repeat until checker score ≥ 95.
+A checker subagent scores the full baseline artifact set using this checklist. Score = (YES items / applicable items) × 100, rounded to the nearest integer. Items marked "If applicable" are excluded from the denominator when the relevant design element does not exist in the project. Resolve material findings and apply `§Bounded Convergence Policy`.
 
 ### requirements.md
 
@@ -272,7 +275,7 @@ Parallel phase execution is allowed only when all parallel phase nodes have no d
 
 ## DAG and Envelope Quality Checklist
 
-A checker subagent scores the Loop Phase DAG and Execution Envelope using this checklist. Score = (YES items / applicable items) × 100. Items marked "If applicable" are excluded from the denominator when not relevant. Auto-revise against all findings and repeat until checker score ≥ 95.
+A checker subagent scores the Loop Phase DAG and Execution Envelope using this checklist. Score = (YES items / applicable items) × 100. Items marked "If applicable" are excluded from the denominator when not relevant. Resolve material findings and apply `§Bounded Convergence Policy`.
 
 ### Loop Phase DAG
 
@@ -302,6 +305,14 @@ A checker subagent scores the Loop Phase DAG and Execution Envelope using this c
 | ENV-08 | `dev_flow_phase_handoff` permission is explicitly stated (allowed / not allowed) | Always |
 | ENV-09 | Envelope is consistent with the Loop Phase DAG (phase count, IDs, and scope match) | Always |
 
+## Bounded Convergence Policy
+
+Use 95 as a quality target, not an unconditional completion requirement. The convergence floor is 90. `max_checker_evaluations` is the configurable upper budget for total checker evaluations at one checkpoint and defaults to 3. The active delivery loop inherits this value from its approved Execution Envelope.
+
+A result passes at 90–94 when all objective checks and acceptance criteria pass, no P0/P1 or unresolved material finding remains, and either the current checker reports only non-material findings or the latest re-review improves by fewer than 2 points. A material finding affects behavior, correctness, security, data integrity, compatibility, deployability, acceptance evidence, or a schema consumed by a tool. Formatting, equivalent prose, YAML key order, or renaming an unconsumed field is non-material. Do not change implementation or control artifacts, and do not invoke another checker, solely to raise the score or consume the remaining budget. YAML remains material when a schema, validator, command, or downstream consumer depends on it.
+
+Scores below 90 or unresolved material findings remain `repairable` while the approved repair and checker budgets remain; when `max_checker_evaluations` is reached, stop and report the concrete blocker instead of repeating equivalent edits. The policy imposes no fixed numeric range on the configured value, and the agent must not increase it after a checkpoint starts without explicit user approval. Existing `quality_threshold: 95` signal fields are retained for compatibility and mean the quality target; do not rename, reorder, or backfill ledger YAML solely for this policy.
+
 ## Auto-Continue Policy
 
 After Baseline Docs Gate and Execution Envelope Gate are both approved, the loop should auto-continue inside the confirmed baseline. It should not ask after every dev-flow phase gate that is already authorized by the baseline.
@@ -316,8 +327,8 @@ Auto-continue is allowed when all are true:
 - phase work is inside baseline scope and acceptance criteria
 - envelope budget, agent cap, and side-effect permissions allow continuation
 - no destructive Git/external/paid operation is needed
-- phase_eval result is pass with checker score >= 95 and no P0/P1 finding, or is repairable inside baseline for a repair round
-- `openspec_artifact_ready.checker_score >= 95` and `task_orchestration_ready.checker_score >= 95` were verified before implementation started for this phase
+- phase_eval result passes the bounded convergence policy, or has a material issue repairable inside baseline
+- `openspec_artifact_ready.checker_score` and `task_orchestration_ready.checker_score` satisfied dev-flow-planning's bounded convergence policy before implementation started for this phase
 
 Hard-stop and ask the user when any is true:
 
@@ -332,10 +343,9 @@ Default limits if the user did not specify them:
 
 - max phase repair rounds: 3 per phase
 - max full-loop passes: 2
-- checker baseline threshold: 95
-- dag_envelope checker threshold: 95
-- planning artifact checker threshold: 95
-- phase_eval threshold: 95
+- checker quality target: 95
+- checker convergence floor: 90
+- `max_checker_evaluations`: 3 total evaluations per checkpoint
 
 These defaults are stated to the user and recorded; they do not need a separate question unless the user asks to change them.
 
@@ -344,8 +354,8 @@ These defaults are stated to the user and recorded; they do not need a separate 
 | Primitive | Meaning | Requirement |
 |---|---|---|
 | `goal` | The single outcome the loop is trying to improve or detect. | Keep it one sentence and measurable enough to evaluate. |
-| `baseline` | User-confirmed requirements/design/test source of truth for the outer loop. | Loop-only baseline artifacts, checker score >= 95, user confirmation. |
-| `phase_dag` | Cross-phase dependency graph. | Records phase nodes, dependencies, entry/exit criteria, eval gates, repair policy. Checker score ≥ 95 required before Execution Envelope Gate. |
+| `baseline` | User-confirmed requirements/design/test source of truth for the outer loop. | Loop-only baseline artifacts, bounded checker convergence, user confirmation. |
+| `phase_dag` | Cross-phase dependency graph. | Records phase nodes, dependencies, entry/exit criteria, eval gates, repair policy. Bounded checker convergence is required before Execution Envelope Gate. |
 | `trigger` | How the loop starts: manual request, heartbeat, schedule, external event, or background monitor. | Treat every non-manual trigger as envelope-required and approval-required. |
 | `trace` | The evidence trail of what was inspected, what was recommended, and what was deliberately not done. | Record artifacts, commands, unavailable sources, and side effects. |
 | `eval` | The checkpoint that decides whether the loop result is good enough. | Use a checker subagent for score, candidate confidence, missing-evidence limits, and boundary checks. |
@@ -440,8 +450,9 @@ Use actual artifacts before memory:
 3. OpenSpec/opsx change artifacts.
 4. dev-flow artifacts: `dev-flow-state.md`, `progress.md`, `task-orchestration.md`, `delivery-report.md`, CR reports.
 5. Loop artifacts when explicitly present: `loop-state.md` (canonical loop signal ledger), `phase-artifacts.md` or `opsx-index.md`, loop report, envelope, candidate inbox, trace log, `phase_eval_result` entries.
-6. Issue/PR/tracker data when explicitly available.
-7. Chat memory as a hint only.
+6. Local transient evidence under `.dev-flow/runtime/<run-id>/` when still available; it supports but does not replace concise results in formal artifacts.
+7. Issue/PR/tracker data when explicitly available.
+8. Chat memory as a hint only.
 
 ## Route Recommendations
 
@@ -468,10 +479,10 @@ Start at 100 and subtract:
 - 20: delivery loop lacks user-confirmed loop-only baseline artifacts before implementation.
 - 20: phase handoff starts before Execution Envelope Gate approves Loop Phase DAG, `auto_continue_scope`, and `dev_flow_phase_handoff`.
 - 20: internal `phase_eval` is confused with `/dev-flow-cr` or emits `cr_report_ready`.
-- 15: baseline artifacts skip the checker subagent review, or checker score < 95, or auto-revision evidence is missing.
+- 15: baseline artifacts skip checker review, fall below the 90 convergence floor, or retain an unresolved material finding.
 - 15: delivery loop lacks a Loop Phase DAG or confuses it with phase-internal `task-orchestration.md`.
-- 15: Loop Phase DAG or Execution Envelope skips checker review, or `dag_envelope_checker_score` < 95 before Execution Envelope Gate.
-- 15: phase execution starts without verified `openspec_artifact_ready.checker_score ≥ 95` and `task_orchestration_ready.checker_score ≥ 95` from dev-flow-planning.
+- 15: Loop Phase DAG or Execution Envelope skips checker review or fails bounded convergence before Execution Envelope Gate.
+- 15: phase execution starts without planning checker results that satisfy bounded convergence.
 - 15: dev-flow phase handoff does not require phase-level OpenSpec/opsx artifacts.
 - 15: OpenSpec/opsx originals are moved or copied into `Docs/<topic>/loop/` instead of being linked from `phase-artifacts.md` or `opsx-index.md`.
 - 15: implementation tasks do not require TDD per task via superpowers or equivalent fallback.
@@ -482,12 +493,13 @@ Start at 100 and subtract:
 - 10: recommendations are not backed by artifacts.
 - 10: no stop condition, retry limit, or budget boundary.
 - 10: auto-continue policy asks on every phase despite confirmed baseline, or continues outside baseline without asking.
+- 10: transient checker/test/runtime output is added to the Loop artifact directory or staged instead of being locally excluded.
 - 5: no trace/eval evidence for a loop recommendation.
 - 5: no maker-checker review before recommending a handoff from automation proposal to execution.
 - 5: no concrete handoff question for `/dev-flow`, `/dev-flow-cr`, or `/dev-flow-scheduler` recommendation.
 - 5: report omits review limits or unresolved risks.
 
-Scores below 95 require revision before running a delivery loop or recommending persistent automation.
+Scores below 90, P0/P1 findings, or unresolved material findings block a delivery loop. Scores from 90 through 94 follow bounded convergence and must not cause YAML-only or equivalent score-chasing revisions.
 
 ## Report Shape
 

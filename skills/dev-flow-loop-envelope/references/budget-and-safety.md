@@ -29,7 +29,7 @@
 | Allowed side effects | Default `read_only`; optionally `write_loop_report`, `write_loop_artifacts`, and `dev_flow_phase_handoff` when explicitly approved by baseline/envelope. |
 | Forbidden side effects | Implementation changes, Git side effects, PRs, merges, tracker mutation, production actions, paid services. |
 | Approval list | Actions that must return to the user before proceeding. |
-| Budget | Structured summary required. Must include at minimum: `max_iterations` (numeric), `max_phase_repair_rounds` (numeric), `max_full_loop_passes` (numeric), `max_wall_time` (duration string, e.g. "30m", "2h"), `retry_cap` (numeric), and `cost_ceiling` (optional; use "unset" if not applicable). Free-text summaries are not accepted when trigger is not `manual`. |
+| Budget | Structured summary required. Must include at minimum: `max_iterations` (numeric), `max_phase_repair_rounds` (numeric), `max_checker_evaluations` (numeric), `max_full_loop_passes` (numeric), `max_wall_time` (duration string, e.g. "30m", "2h"), `retry_cap` (numeric), and `cost_ceiling` (optional; use "unset" if not applicable). Free-text summaries are not accepted when trigger is not `manual`. |
 | Trace requirements | Artifacts, commands, unavailable sources, candidates, scores, and side effects that must be recorded. |
 | Eval checkpoint | Score threshold, candidate confidence, boundary review, or explicit user review required before route recommendation. |
 | Stop conditions | Conditions that halt the loop without asking again. |
@@ -47,6 +47,7 @@
 - `jitter`: `none`
 - `max_iterations`: 1 for manual triage; 3 for approved repeated scans
 - `max_phase_repair_rounds`: 3 for delivery loops
+- `max_checker_evaluations`: 3 total evaluations per checker checkpoint
 - `max_full_loop_passes`: 2 for delivery loops
 - `max_agents`: 1 unless the user explicitly requests parallel review
 - `retry_cap`: 1 for failed source reads
@@ -57,6 +58,8 @@
 - `trace_requirements`: sources checked, sources unavailable, candidates, recommended route, side effects performed
 - `eval_checkpoint`: user review for route handoff; score threshold for persistent automation proposals
 - `stop_conditions`: missing source, ambiguous scope, stale state conflict, budget exceeded, any requested write side effect
+
+`max_checker_evaluations` is an upper budget, not a quota: stop earlier when bounded convergence is reached or only non-material findings remain. It limits total checker calls at one checkpoint; `max_phase_repair_rounds` separately limits phase implementation repair cycles. This policy imposes no fixed numeric range on the user-configured value, but it cannot suppress a mandatory initial checker. The agent must not increase the effective value after a checkpoint starts without explicit user approval.
 
 ## Baseline-Authorized Auto-Continue
 
@@ -73,9 +76,9 @@ Allowed under `auto_continue_scope: within_confirmed_baseline`:
 Still requires explicit user approval:
 
 - changing requirements, non-goals, acceptance criteria, API/protocol/data/security/release boundary, or test strategy
-- increasing budget, max rounds, max agents, cadence, or side-effect scope
+- increasing budget, max rounds, max checker evaluations, max agents, cadence, or side-effect scope
 - creating worktrees, commits, pushes, PRs, merges, tags, production actions, external mutations, paid calls, or scheduler changes
-- continuing after max phase repair rounds, max full-loop passes, retry cap, or wall time is reached
+- continuing after max phase repair rounds, max checker evaluations, max full-loop passes, retry cap, or wall time is reached
 - accepting unresolved P0/P1 phase_eval findings as deferred risk
 
 Do not ask the user to confirm every phase transition when the next phase is inside baseline and the envelope allows continuation. Do ask when the next action changes the baseline or side-effect boundary.

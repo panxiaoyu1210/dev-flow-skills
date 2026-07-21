@@ -23,7 +23,7 @@ Main duties:
 4. Group tasks into execution batches; same-batch tasks have no unmet dependencies and no unresolved high file/symbol overlap risk.
 5. Convert the detailed test plan into concrete per-task, per-batch, final integration, and system-level checks.
 6. Write `Docs/<topic>/task-orchestration.md` or the canonical legacy path.
-7. Run a checker subagent against raw OpenSpec artifacts and `task-orchestration.md`; this checker is mandatory and preauthorized by the Phase 2 planning gate once orchestration exists, so do not ask the user separately whether to run it. Revise until the checker score is at least 95 or a hard blocker is reached.
+7. Run a checker subagent against raw OpenSpec artifacts and `task-orchestration.md`; this checker is mandatory and preauthorized by the Phase 2 planning gate once orchestration exists, so do not ask the user separately whether to run it. Apply the bounded convergence policy from `dev-flow-planning/SKILL.md`: address material findings and re-review only while the effective `max_checker_evaluations` budget remains, not to chase the score or consume the budget.
 
 ## Loop Phase DAG Versus Task DAG
 
@@ -118,7 +118,7 @@ The checker must verify:
 - Git/writer safety assumptions are explicit
 - system-level tests cover the complete workflow and major failure modes
 
-The Phase 2 Gate is not ready unless the checker score is at least 95, or the user explicitly accepts a documented risk.
+The Phase 2 Gate is ready at the 95 quality target, or at the 90 convergence floor when all objective checks pass, no P0/P1 or unresolved material finding remains, and either the current checker reports only non-material findings or the latest re-review shows less than 2 points of improvement. A lower score or unresolved material finding at the configured `max_checker_evaluations` limit requires a documented user risk decision or remains `not-ready`.
 
 ### Automation Readiness Checklist
 
@@ -132,7 +132,7 @@ Phase 2 is `not-ready` unless:
 - every batch has entry and exit criteria
 - final integration/regression commands are named
 - system-level acceptance commands are named
-- orchestration checker score is at least 95, or a documented risk is explicitly accepted
+- orchestration checker satisfies bounded convergence, or a documented material risk is explicitly accepted
 - unresolved approvals, credentials, remotes, external services, or environment assumptions are listed as blockers
 - DAG has no cycles
 - task IDs are stable enough for progress tracking

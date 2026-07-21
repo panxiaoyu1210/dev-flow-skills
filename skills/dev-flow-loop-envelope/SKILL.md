@@ -20,7 +20,7 @@ All user-facing replies and all generated artifact documents (requirements, desi
 ## Core Contract
 
 1. Capture loop objective, scope, trigger, schedule policy, allowed sources, cadence, owner, and expected output.
-2. Define budget limits: max iterations, max phase repair rounds, max full-loop passes, max agents, max wall time, token/cost note, and retry cap.
+2. Define budget limits: max iterations, max phase repair rounds, max checker evaluations, max full-loop passes, max agents, max wall time, token/cost note, and retry cap.
 3. Define permission boundaries: `allowed_side_effects`, `forbidden_side_effects`, `requires_user_approval`, and `auto_continue_scope`.
 4. Define trace/eval requirements: what evidence must be recorded and what checkpoint decides readiness.
 5. Define stop conditions and escalation conditions before any repeated or auto-continuing loop is proposed.
@@ -52,7 +52,7 @@ loop_envelope_ready:
   allowed_side_effects: [read_only | write_loop_report | write_loop_artifacts | dev_flow_phase_handoff]
   forbidden_side_effects: [implementation_changes, git_commit, git_push, pr_create, merge, external_mutation, paid_service]
   requires_user_approval: [list]
-  budget: <structured: max_iterations, max_phase_repair_rounds, max_full_loop_passes, max_agents, max_wall_time, retry_cap, cost_ceiling; free-text only accepted when trigger is manual; see budget-and-safety.md>
+  budget: <structured: max_iterations, max_phase_repair_rounds, max_checker_evaluations, max_full_loop_passes, max_agents, max_wall_time, retry_cap, cost_ceiling; free-text only accepted when trigger is manual; see budget-and-safety.md>
   trace_requirements: [list]
   eval_checkpoint: <score_threshold | candidate_confidence | user_review | none>
   stop_conditions: [list]

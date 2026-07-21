@@ -148,9 +148,9 @@ Agent：
 6. 需要治理规划时进入规划模式。
 7. 在写入或刷新 OpenSpec/opsx 制品前，提出必要的澄清问题。
 8. 用户确认后，将需求/设计/任务/测试证据写入当前活跃的 OpenSpec/opsx 制品集。
-9. Checker subagent 独立对基线制品打分（要求 >= 95）。
+9. Checker subagent 独立对基线制品打分（95 为质量目标，90 起可按有界收敛通过）。
 10. 构建任务编排、并行安全规则和可执行测试矩阵。
-11. Checker subagent 独立对编排计划打分（要求 >= 95）。
+11. Checker subagent 按同一有界收敛策略独立对编排计划打分。
 12. 选择 Git 策略，在第二阶段关卡展示拟定的执行主体。
 13. 将每个实现任务派发给 sub-agent；主 agent 仅负责协调，不直接编辑文件。
 14. 每个 sub-agent 报告 final_success 后，reviewer sub-agent 独立验证 diff 和证据，通过后任务才算结算。
@@ -163,15 +163,15 @@ Agent：
 
 Loop Engineering 是外层控制平面，不是 `/dev-flow` 的阶段。
 
-- `/dev-flow-loop <目标>` 跨多个 dev-flow 阶段或修复轮次保全目标。它首先通过 Baseline Docs Gate，对 loop 专属基线制品（需求、高层设计、详细设计、测试计划 `test-plan.md`、测试用例工作簿 `test-cases.xlsx`）进行审批，要求 checker subagent 记录 `checker_score >= 95`。这些是外层 loop 控制制品，不是 `/dev-flow` 实现文档。然后通过 Execution Envelope Gate，审批 Loop Phase DAG、`auto_continue_scope`、`dev_flow_phase_handoff`、预算、停止条件和副作用边界。两个关卡都通过后，才在已审批的执行边界内将阶段移交给 dev-flow。
+- `/dev-flow-loop <目标>` 跨多个 dev-flow 阶段或修复轮次保全目标。它首先通过 Baseline Docs Gate，对 loop 专属基线制品（需求、高层设计、详细设计、测试计划 `test-plan.md`、测试用例工作簿 `test-cases.xlsx`）进行审批，要求 checker subagent 记录 `checker_score` 并应用有界收敛策略。这些是外层 loop 控制制品，不是 `/dev-flow` 实现文档。然后通过 Execution Envelope Gate，审批 Loop Phase DAG、`auto_continue_scope`、`dev_flow_phase_handoff`、预算、停止条件和副作用边界。两个关卡都通过后，才在已审批的执行边界内将阶段移交给 dev-flow。
 - `/dev-flow-triage` 扫描可用证据，构建只读候选列表（Candidate Inbox）。
 - `/dev-flow-scheduler` 创建、更新、查看、暂停、恢复或删除已审批的 cron/心跳自动化；它不扫描候选列表，也不设计 loop 逻辑。
 - Triage 从不自动执行写代码、提交、推送、开 PR、创建 worktree、修改追踪器、创建调度器、运行 `/dev-flow` 或 `/dev-flow-cr` 等操作。
 - 已确认的交付 loop 可在基线范围内自动继续，将阶段级工作移交给 dev-flow；阶段实现仍需使用 OpenSpec/opsx 制品、任务编排、每任务 TDD（在 superpowers 可用时）、验收证据和 `phase_eval` 检查点。`phase_eval` 不是 `/dev-flow-cr`，不得输出 `cr_report_ready`。
 - Loop 专属制品存放在 `Docs/<topic>/loop/` 或 `docs/<topic>/loop/`。阶段 OpenSpec/opsx 原件留在 `openspec/changes/<change-id>/` 或项目标准 OpenSpec/opsx 位置。不要将 OpenSpec/opsx 原件移入或复制到 loop 制品目录；在 `phase-artifacts.md` 或 `opsx-index.md` 中记录阶段映射关系。
-- Loop `phase_eval threshold: 95`；自动继续要求 `phase_eval_result.checker_score >= 95` 且无 P0/P1 发现。
+- Loop 检查点以 95 为质量目标、90 为收敛下限。90–94 分在客观检查通过、无 P0/P1 或未解决实质问题，且仅剩非实质意见或最新复评提升不足 2 分时可以通过。
 - 冻结初始基线、审批 Loop Phase DAG 和启用 `within_confirmed_baseline` 均需用户明确批准；超出基线、预算、重试、停止条件或副作用边界时，必须停下来询问用户。
-- 可机器检查的 loop 术语：`loop_baseline_ready`、`checker_score`、`quality_threshold: 95`、`Baseline Docs Gate`、`Execution Envelope Gate`、`within_confirmed_baseline`、`phase-level OpenSpec/opsx`，以及默认最大阶段修复轮次 3。
+- 可机器检查的 loop 术语：`loop_baseline_ready`、`checker_score`、`quality_threshold: 95`（保留为质量目标兼容字段）、`max_checker_evaluations`、`Baseline Docs Gate`、`Execution Envelope Gate`、`within_confirmed_baseline`、`phase-level OpenSpec/opsx`，以及默认最大阶段修复轮次 3。`max_checker_evaluations` 可配置，默认每个检查点总计 3 次；它是预算上限，仅 YAML 格式或未被消费字段的变化不会强制继续评估。
 - 若某个候选应被实现或审查，Agent 需提出具体的移交询问。用户明确确认特定候选后，Agent 可进入对应的 `/dev-flow` 或 `/dev-flow-cr` 流程，无需用户再次输入 slash 命令。
 - 周期性仓库扫描应使用只读候选列表提示；自动修复和完整代码审查默认关闭。
 
@@ -204,6 +204,8 @@ Loop Engineering 是外层控制平面，不是 `/dev-flow` 的阶段。
 - `Docs/<topic>/loop/phase-artifacts.md` 或 `Docs/<topic>/loop/opsx-index.md`
 
 这些 loop 制品保全外层目标和已审批的执行边界。阶段实现仍使用 `openspec/changes/<change-id>/` 或项目标准 OpenSpec/opsx 位置中的原件。
+
+在 Git 仓库中，上述 canonical 制品均属于正式可追踪交付物，包括 Markdown 状态/报告文件和 `test-cases.xlsx`。checker 每轮原始输出、stdout/stderr 捕获、完整日志、coverage、截图/视频、浏览器 trace、benchmark/timing、调试 dump、临时 patch 和中间转换文件属于过程产物。工作流生成的过程产物统一放入 `.dev-flow/runtime/<run-id>/`，通过 `.git/info/exclude` 做本地排除，不自动修改项目 `.gitignore`；正式变更按明确 staging allowlist stage，禁止使用 `git add -A` 或 `git add .`。
 
 目录示例：
 
@@ -267,7 +269,7 @@ Doctor 命令还检查：`/dev-flow-scheduler`、已审批的自动化边界、�
 - 共享工作树写入必须串行化。
 - 高文件或符号重叠的任务即使有 worktree 也必须串行执行。
 - 无 worktree 并行模式应使用补丁生成加主 agent 串行应用；reviewer sub-agent 在结算前验证已应用的 diff。
-- 所有影响关卡的评分使用对原始制品进行审查的独立 checker subagent；主 agent 不能为关卡通过进行自我评分。所有关卡（规划、loop、验收、完成）均要求 checker 分数 >= 95。
+- 所有影响关卡的评分使用对原始制品进行审查的独立 checker subagent；主 agent 不能为关卡通过进行自我评分。各关卡以 95 为目标；若客观证据通过、无 P0/P1 或未解决实质问题，且仅剩非实质意见或分数提升已进入平台期，可在 90–94 分收敛。
 - 最终验收要求每个任务的本地验证证据和规范 Git 集成状态。
 - 最终验收要求实现任务的 TDD 证据、系统级检查、需求/设计/测试覆盖率、验收 checker 证据，以及 loop 授权阶段的阶段级 OpenSpec/opsx 证据。
 - 独立 CR 由用户在接受或检查交付工作后通过 `/dev-flow-cr` 触发；它不是 `/dev-flow` 的自动阶段。
@@ -276,3 +278,4 @@ Doctor 命令还检查：`/dev-flow-scheduler`、已审批的自动化边界、�
 - 调度器变更隔离在 `/dev-flow-scheduler` 中，创建/更新/暂停/恢复/删除操作均需明确批准。
 - 本地修改在更新期间受清单校验和保护。
 - 最终成功需要验证证据，而非仅凭 agent 自我报告。
+- Canonical 正式制品保持追踪；过程验证产物保持本地排除，不进入 staged diff。

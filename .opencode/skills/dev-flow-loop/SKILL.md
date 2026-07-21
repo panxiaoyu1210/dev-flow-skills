@@ -12,6 +12,7 @@ Loop Engineering is the outer control plane around dev-flow. It owns target rete
 - Default read-only for triage, review, workflow design, and automation proposal scopes.
 - **Writing any baseline artifact requires explicit confirmation from the user in the current turn. Prior discussion, even extensive requirements brainstorming, is NOT sufficient. If the user has not confirmed in this turn, ask whether to proceed with writing the baseline documents and stop until confirmed.**
 - Use the loop artifact directory, normally `Docs/<topic>/loop/`, only for loop baseline/state/DAG/envelope/index artifacts.
+- Treat those loop documents as Git-tracked formal artifacts when Git integration is authorized; keep raw checker rounds, logs, screenshots/traces, benchmarks, and other transient evidence under `.dev-flow/runtime/<run-id>/`.
 - Do not move or copy OpenSpec/opsx originals into the loop artifact directory; phase originals stay in `openspec/changes/<change-id>/` or the project's standard OpenSpec/opsx location.
 - Implementation files and implementation specs change only through phase-level dev-flow OpenSpec/opsx.
 - Do not run as a dev-flow stage, and do not emit `routing_decided`, `execution_settled`, `acceptance_ready`, or `cr_report_ready`.
@@ -30,6 +31,8 @@ When this skill requires a checker subagent, the checker is part of the approved
 
 Checker subagents are read-only reviewers unless the active gate explicitly assigns them artifact-writing work. They may inspect raw baseline docs, DAG/envelope files, OpenSpec/opsx artifacts, task orchestration, phase evidence, logs, and reports; they must return findings, P0/P1 blockers, a 0-100 score, and gate readiness. User approval is still required for writing baseline artifacts, freezing the baseline, approving the execution envelope, starting side effects, commits, pushes, PRs, or worktree creation.
 
+Use bounded convergence at every loop gate: the quality target is 95, the convergence floor is 90, and `max_checker_evaluations` is a configurable per-checkpoint upper budget that defaults to 3. A 90–94 result may pass when objective checks pass, no P0/P1 or unresolved material finding remains, and either the checker reports only non-material findings or the latest re-review improves by fewer than 2 points. A material finding affects behavior, correctness, security, data integrity, compatibility, deployability, acceptance evidence, or a machine-consumed schema; prose style, formatting, YAML key order, or an unconsumed field name is non-material and must not trigger score-chasing edits or force the budget to be exhausted.
+
 ## Language Policy
 
 All user-facing replies and all generated artifact documents (requirements, design, specs, CLI specs, test plans, delivery reports, and other persisted Markdown files) in dev-flow must be written in Chinese.
@@ -44,19 +47,19 @@ All user-facing replies and all generated artifact documents (requirements, desi
    - After producing the artifact set, spawn a checker subagent
    - The checker scores the full artifact set 0–100 against `references/control-plane.md §Baseline Document Quality Checklist`
    - Record the score in `loop_baseline_ready.checker_score`
-   - Auto-revise against all findings until checker score ≥ 95 or a blocker is reached
+   - Resolve material findings and apply the bounded convergence policy; do not revise only to chase 95
    - Then get Baseline Docs Gate approval
 4. Write the Loop Phase DAG and load `dev-flow-loop-envelope`:
    - Produce the Loop Phase DAG (phase nodes, dependencies, entry/exit criteria, repair policy) and the Execution Envelope (budget, stop conditions, side-effect boundaries, `auto_continue_scope`)
    - Spawn a checker subagent to score the DAG and Envelope 0–100 against `references/control-plane.md §DAG and Envelope Quality Checklist`
    - Record the score in `loop_control_ready.dag_envelope_checker_score`
-   - Auto-revise against all findings until checker score ≥ 95 or a blocker is reached
+   - Resolve material findings and apply the bounded convergence policy; do not revise only to chase 95
    - Then get Execution Envelope Gate approval for the DAG, `auto_continue_scope`, and `dev_flow_phase_handoff`
 5. Execute each phase by handing to dev-flow in loop-authorized phase mode:
-   - **Before starting execution**, verify `openspec_artifact_ready.checker_score ≥ 95` and `task_orchestration_ready.checker_score ≥ 95` are recorded from dev-flow-planning; do not start implementation if either score is absent or below threshold
+   - **Before starting execution**, verify `openspec_artifact_ready.checker_score` and `task_orchestration_ready.checker_score` are recorded and satisfy dev-flow-planning's bounded convergence policy; do not start implementation if either result is absent or `not-ready`
    - phase-level OpenSpec/opsx, phase-internal task DAG, detailed test matrix, TDD per task via superpowers, system-level acceptance evidence
 6. Record phase OpenSpec/opsx paths and status in `phase-artifacts.md` or `opsx-index.md`; do not duplicate the OpenSpec change directory under loop artifacts.
-7. Run a checker subagent for `phase_eval` after each phase or repair round; the checker scores phase artifacts from 0–100; record the score in `phase_eval_result.checker_score`; a phase passes only when checker score ≥ 95 with no P0/P1 finding; do not call `/dev-flow-cr` or emit `cr_report_ready` unless the user explicitly runs `/dev-flow-cr`.
+7. Run a checker subagent for `phase_eval` after each phase or material repair round; record `phase_eval_result.checker_score` and apply bounded convergence. A passing phase has no P0/P1 or unresolved material finding and either reaches 95 or converges at 90–94 after the one allowed targeted re-review; do not call `/dev-flow-cr` or emit `cr_report_ready` unless the user explicitly runs `/dev-flow-cr`.
 8. Load `dev-flow-loop-triage` when observing repo/CI/diff/issues/OpenSpec/dev-flow artifacts to produce a candidate inbox.
 9. Use maker-checker separation before freezing baseline, approving an envelope, or recommending handoff from triage.
 

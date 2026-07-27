@@ -16,6 +16,10 @@
 
 ## Phase 1 — OpenSpec Baseline Artifacts
 
+OpenSpec remains the source for requirement/design prose in every authority mode. Graph state records stable references, hashes, relations, states, permissions, and evidence summaries only. After material artifact changes, preview `dev-flow graph impact`; Graph mode applies stale propagation before readiness is recomputed, while Shadow reports drift and remains read-only.
+
+Every control-state persistence instruction below follows the selected mode: Legacy writes the Markdown ledger, Shadow writes its approved fenced projection source and creates a new explicit snapshot, and Graph writes through the CLI/API before updating downstream evidence/views.
+
 All dev-flow implementation work uses persisted OpenSpec/opsx artifacts as the documentation baseline. Medium/heavy work enriches the OpenSpec/opsx change with enough requirement, design, task, spec, and test evidence to support implementation, review, and system-level acceptance.
 
 Expected baseline evidence:
@@ -83,8 +87,8 @@ When invoked from `dev-flow-loop` with a confirmed loop baseline:
 - Do not ask the user to re-confirm the same global baseline for every phase.
 - Do not regenerate the full loop-only baseline artifacts inside phase-level dev-flow.
 - Create phase-level OpenSpec/opsx artifacts that slice the baseline into the current phase's spec/tasks.
-- Create or update the phase-internal `task-orchestration.md` and Executable Test Matrix for implementation.
-- Record the loop ID, all five baseline artifact paths including `test-cases.xlsx`, Loop Phase DAG node, envelope limits, and phase artifact index path in `dev-flow-state.md`.
+- Create or update the phase-internal task plan by authority mode: Legacy writes `task-orchestration.md`; Shadow updates its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes modeled task facts through the Master Graph CLI/API before refreshing `task-orchestration.md` as the plan/evidence view. Include the Executable Test Matrix for implementation.
+- Persist the loop ID, all five baseline artifact paths including `test-cases.xlsx`, Loop Phase DAG node, envelope limits, and phase artifact index path by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing the evidence view.
 - Return to the loop/user if the phase needs to change requirements, non-goals, acceptance, API/protocol/data/security/release boundaries, or the overall test strategy.
 
 This keeps loop and dev-flow decoupled: loop owns the target and cross-phase DAG; dev-flow owns phase execution artifacts.
@@ -133,7 +137,7 @@ Score dimensions:
 
 For loop-only baseline artifacts and medium/heavy OpenSpec baseline artifacts, use the bounded convergence policy in `dev-flow-planning/SKILL.md`. Resolve material findings and re-review only while the effective `max_checker_evaluations` budget remains. The budget defaults to 3. A score of 95 or higher is the quality target. A score from 90 through 94 may be presented for approval when all objective checks pass, no P0/P1 or unresolved material finding remains, and either the current checker reports only non-material findings or the latest re-review improves by fewer than 2 points. Below 90, or with any unresolved material finding when the budget is exhausted, the artifacts remain `not-ready`.
 
-Persist the checker score, checker identity/model when available, raw artifact scope, findings, and revision notes in `dev-flow-state.md` for normal governed planning, or in the loop baseline artifact for loop-owned docs.
+Persist the checker score, identity/model when available, raw scope, findings, and revision notes locally by authority mode: Legacy writes `dev-flow-state.md` or the loop baseline ledger; Shadow writes its approved fenced Markdown projection source and creates a new snapshot; Graph writes through the owning Master/Loop Graph CLI/API before refreshing the evidence view.
 
 ### Diagram Governance
 
@@ -142,11 +146,11 @@ For formal product/system OpenSpec artifacts, diagrams are governed assets. Use 
 ### Revision Loop
 
 - Apply revisions only when they address a material finding or changed user requirement, then re-present for confirmation.
-- Track revision count per artifact set in `dev-flow-state.md`.
+- Track revision count per artifact set by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the owning Master/Loop Graph CLI/API before refreshing the evidence view.
 - Use the effective `max_checker_evaluations` value as the upper budget per artifact set; default to 3 when it is not configured.
 - If the result is still below the convergence floor or has a material finding when the configured budget is exhausted, present choices: narrow or restart the affected scope, explicitly accept a documented risk where the gate permits it, or pause.
 - Do not edit or re-review merely to raise the numeric score. In particular, do not reorder YAML keys, rename unconsumed fields, or rewrite equivalent prose unless a schema, validator, consumer, or user requirement makes that change material.
 
 ### OpenSpec Baseline Signal
 
-Emit and persist `openspec_artifact_ready` with: OpenSpec change path, generated artifact list, artifact variant, review mode, `checker_score`, checker findings path or summary, unresolved/accepted risks, OpenSpec Baseline Gate readiness, and the `dev-flow-state.md` path. In loop-authorized phase mode, also include the loop artifact directory, all five loop baseline artifact paths including `test-cases.xlsx`, and `phase-artifacts.md` or `opsx-index.md` path, while keeping the canonical OpenSpec change path outside the loop directory.
+Emit `openspec_artifact_ready` with: OpenSpec change path, generated artifact list, artifact variant, review mode, `checker_score`, checker findings path or summary, unresolved/accepted risks, OpenSpec Baseline Gate readiness, and the selected state/evidence path. Persist it by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing the evidence view. In loop-authorized phase mode, also include the loop artifact directory, all five loop baseline artifact paths including `test-cases.xlsx`, and `phase-artifacts.md` or `opsx-index.md` path, while keeping the canonical OpenSpec change path outside the loop directory.

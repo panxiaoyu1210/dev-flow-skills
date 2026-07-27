@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "event.contract",
+  "graphId": "master.contract",
+  "eventType": "transition",
+  "occurredAt": "2026-07-24T09:30:00.000Z",
+  "actorId": "maker.contract",
+  "subjectIds": ["task.contract"],
+  "payload": {"from": "planned", "to": "ready"}
+}

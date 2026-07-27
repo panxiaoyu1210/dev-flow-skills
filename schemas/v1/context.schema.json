@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/context.schema.json",
+  "title": "Dev Flow minimal context package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "graphId", "graphHash", "owner", "action",
+    "selectedNodeIds", "blockedNodeIds", "reasonCodes", "refs",
+    "nodeSummaries", "evidenceSummaries", "permissions"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "graphId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "graphHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+    "owner": {"type": "string", "minLength": 1},
+    "action": {"type": "string", "minLength": 1},
+    "selectedNodeIds": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    },
+    "blockedNodeIds": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    },
+    "reasonCodes": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "nodeSummaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "status"],
+        "properties": {
+          "id": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+          "type": {"$ref": "https://dev-flow.dev/schemas/v1/node.schema.json#/properties/type"},
+          "status": {"$ref": "https://dev-flow.dev/schemas/v1/node.schema.json#/properties/status"},
+          "ref": {"type": "string", "minLength": 1},
+          "hash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"}
+        }
+      }
+    },
+    "evidenceSummaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidenceId", "subjectId", "summary", "hash"],
+        "properties": {
+          "evidenceId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+          "subjectId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+          "summary": {"type": "string", "minLength": 1},
+          "hash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"}
+        }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/permission"}
+    }
+  }
+}

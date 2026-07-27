@@ -1,0 +1,11 @@
+{
+  "id": "evidence.invalid-expires-at",
+  "type": "Evidence",
+  "status": "passed",
+  "subjectId": "req.contract",
+  "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "sourceRevision": "git:abc123",
+  "summary": "Invalid calendar month must be rejected.",
+  "capturedAt": "2024-02-29T09:00:00.123Z",
+  "expiresAt": "2026-13-01T09:00:00Z"
+}

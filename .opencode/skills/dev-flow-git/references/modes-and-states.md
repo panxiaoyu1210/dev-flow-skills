@@ -2,6 +2,8 @@
 
 ## Phase 2 Git Gate Inputs
 
+When Git state is modeled in a Master Graph, actual repository state remains the evidence source and the Graph is the control-state authority. Run `dev-flow graph check` plus targeted `context` before selecting a mode; record a transition only after the real Git operation succeeds.
+
 Before Phase 3, resolve:
 
 ### Isolation Mode
@@ -59,4 +61,4 @@ Every completed task must use one of these canonical integration states:
 | `applied_from_shared_worktree_patch` | A patch-ready sub-agent output was applied by the main agent to the shared working tree and verified. |
 | `deferred_accepted` | Task was explicitly accepted as deferred by the user or an approved gate, with risk recorded. |
 
-Use these exact machine-readable state names in `task-orchestration.md`, `progress.md`, `dev-flow-state.md`, and `delivery-report.md`. Do not invent synonyms such as `PR opened`, `direct-commit complete`, or `shared-working-tree-applied` in persisted task state; human-readable summaries may explain them.
+In Graph mode, `schemas/v1/node.schema.json` owns the modeled Git lifecycle and transitions use the Graph CLI/API. The table above is compatibility vocabulary for detailed integration outcomes in evidence summaries/views, not a second Graph status enum. In Legacy/Shadow, use those compatibility names consistently across `task-orchestration.md`, `progress.md`, `dev-flow-state.md`, and `delivery-report.md`. Do not invent synonyms such as `PR opened`, `direct-commit complete`, or `shared-working-tree-applied`.

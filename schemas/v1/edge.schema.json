@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/edge.schema.json",
+  "title": "Dev Flow graph edge",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "from", "to"],
+  "properties": {
+    "id": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "type": {
+      "enum": [
+        "depends_on", "control", "implements", "verifies", "requires",
+        "evidences", "authorizes", "relates_to", "handoff"
+      ]
+    },
+    "from": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "to": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "status": {"enum": ["active", "blocked", "stale"]},
+    "relationHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"}
+  }
+}

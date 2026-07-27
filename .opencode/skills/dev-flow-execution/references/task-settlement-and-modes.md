@@ -16,6 +16,10 @@
 
 ## Task Settlement and Final Signal Protocol
 
+A Graph transition is an outcome record, not a settlement shortcut. After reviewer resolution and fresh checks, call `dev-flow graph transition` with the permitted actor; a blocked result leaves the prior state authoritative and routes the machine-readable finding. Use `dev-flow graph --help` for result meanings.
+
+All control persistence below follows the active mode: Legacy updates its Markdown ledgers, Shadow updates the approved fenced projection source and creates a new explicit snapshot, and Graph writes through the CLI/API before regenerating Markdown evidence/views.
+
 Sub-agents may report intermediate errors, failing tests, type errors, merge conflicts, or retry attempts while still working. These are in-progress telemetry, not final outcomes.
 
 A task is settled only on one final signal:
@@ -67,7 +71,7 @@ Main-agent apply loop:
 4. Apply exactly one patch/task to the shared working tree.
 5. Run that task's required diagnostics/tests.
 6. If the patch no longer applies cleanly, reconcile it against current state or ask the same task context for a refreshed patch; do not mark the task failed merely because earlier patches changed the file. Maximum reconciliation attempts: 2. If the patch still does not apply cleanly after 2 attempts, emit `final_failed` with reason `patch_reconciliation_failed` and stop retrying.
-7. Update Runtime Orchestration State and `progress.md` after each applied patch.
+7. Update Runtime Orchestration State and persist progress through the active authority after each applied patch; then refresh its evidence view.
 8. Continue applying the next patch until the sub-wave is settled.
 
 In this mode, a sub-agent's patch-ready output is an intermediate deliverable. After the main agent applies and verifies the patch in the shared working tree, dispatch a reviewer sub-agent to independently verify the applied diff before settling the task.
@@ -138,7 +142,7 @@ Before claiming a task, batch, or full workflow is complete, use `superpowers:ve
 
 When tasks are dispatched to sub-agents (worktree-parallel or shared-working-tree serial mode), the main agent must dispatch a reviewer sub-agent after each implementing sub-agent reports `final_success`, before the task is considered settled.
 
-**When to skip:** read-only exploration tasks; tasks with `reviewer: skip` and an accepted justification recorded in `task-orchestration.md`. The reviewer applies to all three execution modes including patch mode.
+**When to skip:** read-only exploration tasks; tasks whose accepted `reviewer: skip` justification is persisted by authority mode—Legacy records it in `task-orchestration.md`, Shadow records it in the approved fenced Markdown projection and creates a fresh snapshot, and Graph records it through the Master Graph CLI/API before refreshing the plan/evidence view. The reviewer applies to all three execution modes including patch mode.
 
 ### Reviewer Dispatch
 
@@ -164,8 +168,8 @@ The reviewer returns `task_reviewer_verdict`:
 
 After receiving `task_reviewer_verdict`:
 
-1. **`cannot_verify` items** — the main agent resolves using cross-task knowledge and documents resolution in `progress.md`. These do not block settlement unless the main agent judges them critical.
-2. **Minor findings** — log to `progress.md` as deferred notes. Do not block settlement.
+1. **`cannot_verify` items** — the main agent resolves using cross-task knowledge and persists the resolution through the active authority/evidence view. These do not block settlement unless the main agent judges them critical.
+2. **Minor findings** — persist them as deferred evidence notes through the active mode. Do not block settlement.
 3. **Critical or Important findings** — dispatch a fix sub-agent (same task scope and worktree/checkout) addressing only the listed findings. After the fix sub-agent reports `final_success`, re-dispatch the reviewer (same protocol). Maximum 3 review-fix rounds total.
 4. **3 rounds exhausted with critical or important findings remaining** — emit `final_blocked` with `blocker_type: reviewer_blocked`, list the unresolved findings, and wait for user decision: accept findings, skip task, or replan.
 5. **Reviewer approves (`quality_verdict: approved`, no critical or important findings)** — task is settled as `final_success`.
@@ -182,7 +186,7 @@ If any task settled with `final_failed` or `final_blocked`:
 - do not advance to next batch while current failed task is unresolved
 - after 3 failed attempts, hard-stop for user recovery: retry, skip, rollback, or pause
 
-Skipped tasks prevent final `ready-to-report` unless explicitly accepted as deferred scope by the user or an approved gate, downstream dependencies are resolved by redesign/stub/mock/follow-up, and `dev-flow-state.md` plus the delivery report list the deferral and accepted risk.
+Skipped tasks prevent final `ready-to-report` unless explicitly accepted as deferred scope by the user or an approved gate, downstream dependencies are resolved by redesign/stub/mock/follow-up, and the active control authority plus delivery report list the deferral and accepted risk.
 
 ### final_success Return Schema
 
@@ -204,7 +208,7 @@ final_success:
   patch_state: <patch file path or "none — direct write">
 ```
 
-Note: `replan_count` is tracked by the coordinator in `dev-flow-state.md` and is included in the `execution_settled` signal, not in individual task `final_success` signals.
+Note: `replan_count` is tracked by the coordinator in the active control authority and is included in `execution_settled`, not in individual task `final_success` signals.
 
 ### final_failed Return Schema
 

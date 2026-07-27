@@ -1,62 +1,37 @@
 ---
 name: dev-flow-loop-envelope
-description: Use when defining budget, permissions, cadence, stop conditions, locks, safety limits, auto-continue boundaries, baseline approval scope, or approval boundaries for Loop Engineering, recurring scans, background agents, delivery loops, automation proposals, monitors, or repeated dev-flow triage.
+description: Use when defining budget, permissions, cadence, stop conditions, locks, safety limits, auto-continue, baseline authority, or approval boundaries for repeated or scheduled Loop Engineering.
 ---
 
 # Dev Flow Loop Envelope
 
-Define the safety envelope for any repeated, scheduled, background, persistent, or auto-continuing Loop Engineering activity before it runs. This skill prepares the envelope; `dev-flow-scheduler` applies approved automation changes.
+Define the approved safety envelope before repeated, scheduled, background, persistent, or auto-continuing Loop activity. This Skill prepares controls; `dev-flow-scheduler` owns automation mutation. All user-facing replies and persisted Markdown artifacts are written in Chinese.
 
-## Boundary
+## Machine Authority
 
-- Does not scan candidates, implement fixes, run `/dev-flow` as a phase owner, run `/dev-flow-cr` as a reviewer, or perform Git/external side effects.
-- Does not create, update, pause, resume, or delete automations directly; it prepares the envelope that a user can approve and hand to `dev-flow-scheduler`.
-- Writing `loop-envelope.md` is allowed when the user approves persisted loop artifacts. Persist `loop_envelope_ready` to `loop-state.md` in the loop artifact directory; never write it to `dev-flow-state.md`.
+The versioned contracts in `schemas/v1/` and the `dev-flow graph` CLI are the machine-rule source of truth. Read `../dev-flow-loop/references/graph-control.md` before Graph-backed envelope/budget decisions and `references/budget-and-safety.md` for the human policy. Field inventories remain in contracts, not this Skill.
 
-## Language Policy
+## Steps
 
-All user-facing replies and all generated artifact documents (requirements, design, specs, CLI specs, test plans, delivery reports, and other persisted Markdown files) in dev-flow must be written in Chinese.
+1. **Recover loop coordinates.** Read the Loop goal, baseline authority, phase DAG, current envelope/budget, trigger, actual side effects, and Graph `context` when present.
+   **Complete when:** scope, owner, trigger, evidence source, existing approvals, and conflicts are explicit.
 
-## Core Contract
+2. **Set finite controls.** Define cadence/schedule policy, numeric iteration/repair/checker/pass/agent/retry limits, wall time/cost ceiling, overlap lock, and trace/eval checkpoints using `references/budget-and-safety.md`.
+   **Complete when:** every repeated branch has a finite budget, measurable stop, and escalation action; missing mandatory control makes the proposal blocked.
 
-1. Capture loop objective, scope, trigger, schedule policy, allowed sources, cadence, owner, and expected output.
-2. Define budget limits: max iterations, max phase repair rounds, max checker evaluations, max full-loop passes, max agents, max wall time, token/cost note, and retry cap.
-3. Define permission boundaries: `allowed_side_effects`, `forbidden_side_effects`, `requires_user_approval`, and `auto_continue_scope`.
-4. Define trace/eval requirements: what evidence must be recorded and what checkpoint decides readiness.
-5. Define stop conditions and escalation conditions before any repeated or auto-continuing loop is proposed.
-6. Emit `loop_envelope_ready`; block the loop proposal if side effects or stop conditions are unclear, and route approved scheduler actions to `dev-flow-scheduler`.
+3. **Set permission boundaries.** Separate allowed effects, approval-required effects, and forbidden effects. `within_confirmed_baseline` is available only for a user-confirmed baseline and approved phase handoff; a capability note never grants authority.
+   **Complete when:** every possible write, Git, scheduler, external, paid, or destructive action has one unambiguous permission outcome and owner.
 
-## References
+4. **Validate controls.** In Graph mode run `dev-flow graph check`, then `next`/`context`; preview `impact` when an envelope or budget changes. Keep Loop Graph controls isolated from Master Tasks.
+   **Complete when:** envelope, budget, DAG, baseline, and permissions agree, with `unknown_impact` routed to conservative review.
 
-- `references/budget-and-safety.md`: Load before proposing a loop envelope, recurring automation, monitor, background run, or persistent loop state.
+5. **Emit or block.** Persist `loop_envelope_ready` in Loop state and transition modeled control nodes only after real approval/evidence. Route approved automation operations to `dev-flow-scheduler`.
+   **Complete when:** status is `ready` with all controls and approval references, or `blocked` with the exact missing control, stop reason, and next owner.
 
-## Required Signal
+## Context Pointers
 
-```yaml
-loop_envelope_ready:
-  producer: dev-flow-loop-envelope
-  timestamp: <ISO-8601>
-  objective: <one line>
-  scope: <repo | branch | diff | openspec_change | dev_flow_topic | external_source>
-  trigger: manual | heartbeat | scheduled | event_triggered | background
-  schedule_kind: manual | heartbeat | cron | interval | event | none
-  cron_expression: <expression or none>
-  timezone: <IANA timezone or local>
-  max_overlap: 0 | 1
-  missed_run_policy: skip | run_once | ask_user
-  jitter: <duration or none>
-  cadence: manual | scheduled | event_triggered | background
-  allowed_sources: [list]
-  baseline_authority: none | confirmed_loop_baseline
-  auto_continue_scope: disabled | within_confirmed_baseline | ask_user
-  allowed_side_effects: [read_only | write_loop_report | write_loop_artifacts | dev_flow_phase_handoff]
-  forbidden_side_effects: [implementation_changes, git_commit, git_push, pr_create, merge, external_mutation, paid_service]
-  requires_user_approval: [list]
-  budget: <structured: max_iterations, max_phase_repair_rounds, max_checker_evaluations, max_full_loop_passes, max_agents, max_wall_time, retry_cap, cost_ceiling; free-text only accepted when trigger is manual; see budget-and-safety.md>
-  trace_requirements: [list]
-  eval_checkpoint: <score_threshold | candidate_confidence | user_review | none>
-  stop_conditions: [list]
-  escalation_conditions: [list or none]
-  lock_policy: <repo_writer_lock | none>
-  status: ready | blocked
-```
+- `references/budget-and-safety.md`: required control meanings, defaults, auto-continue, approvals, blockers, and escalation.
+- `../dev-flow-loop/references/graph-control.md`: Loop Graph authority, eligibility, impact, transition, and handoff boundary.
+- `../dev-flow-loop/references/control-plane.md`: baseline, phase DAG, checker, and eval lifecycle.
+
+The `loop_envelope_ready` field contract is owned by `schemas/v1/` where modeled and by the Loop control reference for Legacy compatibility. Completion requires step 5's checkable result, not merely an envelope draft.

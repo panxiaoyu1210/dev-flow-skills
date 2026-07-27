@@ -73,7 +73,7 @@ A phase gate is never a soft stop. OpenSpec Baseline Gate and Phase 2 Gate requi
 13. Acceptance — `dev-flow-acceptance`
 14. Completion gate — master checks acceptance evidence and reports final state
 
-**Loop-authorized phase entry:** when dev-flow receives a confirmed loop-authorized phase handoff (all five conditions in `routing-and-complexity.md §Loop-Authorized Phase Mode` are verified), entry begins at step 6 with the loop context already established. Steps 1–5 are replaced by verifying the loop signals; steps 8 and 11 skip the interactive user gate (see loop-authorized exception in `state-and-gates.md`). Record the loop authorization in `dev-flow-state.md` before proceeding.
+**Loop-authorized phase entry:** when dev-flow receives a confirmed loop-authorized phase handoff (all five conditions in `routing-and-complexity.md §Loop-Authorized Phase Mode` are verified), entry begins at step 6 with the loop context already established. Steps 1–5 are replaced by verifying the loop signals; steps 8 and 11 skip the interactive user gate (see loop-authorized exception in `state-and-gates.md`). Record the loop authorization locally by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a new snapshot; Graph writes through the Master Graph CLI/API and only then refreshes its evidence view.
 
 Continue-by-default rule:
 
@@ -94,30 +94,31 @@ If relevant context exists, prefer continuing or updating it instead of blindly 
 
 ## Progress Queries
 
-When the user asks “进度怎么样 / 状态 / 到哪了 / 还剩多少”, read `dev-flow-state.md` and `progress.md` if they exist, reconcile them with actual state, and answer in Chinese. If the workflow is still before persisted state creation, summarize the current stage verbally and say that no governed state file exists yet.
+When the user asks “进度怎么样 / 状态 / 到哪了 / 还剩多少”, resolve progress from the active authority and answer in Chinese: Legacy reads `dev-flow-state.md` and `progress.md`; Shadow reads the approved fenced Markdown projection and verifies its snapshot; Graph derives the control answer only from `dev-flow graph check`, `next`, and targeted `context`. In Graph mode, Markdown views are non-input evidence: stale, tampered, or conflicting views never change the answer and are regenerated from Graph. Before any authority state exists, summarize the current stage verbally and say that no governed state exists yet.
 
 ## Context Recovery Protocol
 
 When a dev-flow session resumes, context was compacted, a new session starts, or the agent is unsure whether memory is stale, do not continue from chat memory.
 
+Resolve authority before reading status: if `Docs/<topic>/dev-flow-graph.json` exists, run `dev-flow graph check --json`, then `next` and targeted `context`. Shadow projection errors or drift block routing until the approved fenced projection source creates a new explicit one-way snapshot target. Graph mode never reads a generated Markdown view back into machine state. If no Graph exists, retain the Legacy recovery order below.
+
 Before any new planning, execution, Git, or acceptance action, reload or re-read:
 
 1. `dev-flow-master`
 2. the current phase skill: `dev-flow-planning`, `dev-flow-execution`, `dev-flow-git`, or `dev-flow-acceptance`
-3. canonical `dev-flow-state.md` if present
-4. canonical `progress.md` if present
-5. canonical `task-orchestration.md` if present
-6. OpenSpec/opsx artifacts and canonical `test-plan.md` if present
-7. relevant requirement/design artifacts if planning or requirement-change state is involved
-8. actual Git/filesystem state
-9. if `dev-flow-state.md` records `loop_authorized: true`: also load the loop artifact directory's `loop-state.md` and re-verify all of the following before continuing — `loop_baseline_ready` (baseline_status must still be `user_confirmed`), `loop_control_ready` (check `loop_id`, `auto_continue_scope`, `envelope_required`), `loop_envelope_ready` (check budget remaining, `dev_flow_phase_handoff`, `auto_continue_scope`), confirmed loop-only baseline artifact paths, and the current Loop Phase DAG node — do not treat the session as a fresh dev-flow entry
+3. active control state: Legacy reloads `dev-flow-state.md`, `progress.md`, and `task-orchestration.md`; Shadow reloads the approved fenced Markdown projection and verifies the current snapshot; Graph runs `dev-flow graph check`, `next`, and targeted `context`, treating generated Markdown as non-input evidence and regenerating any stale, tampered, or conflicting view
+4. OpenSpec/opsx artifacts, canonical `test-plan.md`, and relevant requirement/design artifacts as evidence or change inputs
+5. actual Git/filesystem/task state
+6. resolve loop authorization from the active authority: Legacy reads `dev-flow-state.md` and `loop-state.md`; Shadow reads the approved fenced Markdown projection and verifies its fresh snapshot; Graph queries the separate Master and Loop Graphs through the CLI/API and never treats generated Markdown as input. When `loop_authorized: true`, re-verify `loop_baseline_ready` (`baseline_status` remains `user_confirmed`), `loop_control_ready` (`loop_id`, `auto_continue_scope`, `envelope_required`), `loop_envelope_ready` (budget remaining, `dev_flow_phase_handoff`, `auto_continue_scope`), confirmed loop-only baseline artifact paths, and the current Loop Phase DAG node; do not treat the session as a fresh dev-flow entry
 
 Recovery rules:
 
-- If `dev-flow-state.md` records an unresolved gate, missing approval, stale signal, or required repair, resume that recovery point before planning, execution, Git, or acceptance.
-- If `progress.md` says a requirement change, stale task, failed task, skipped task, rollback, pause, or gate re-entry is pending, resume at that recovery point instead of dispatching new work.
-- If `dev-flow-state.md`, `task-orchestration.md`, and `progress.md` disagree, route to the current phase owner to reconcile before continuing. If the phase owner cannot reconcile the disagreement after one attempt, emit a hard-stop. Present the user with: (1) what each source (Git/fs vs persisted files) says, (2) which source is authoritative per the priority chain, and (3) a recommendation. Do not attempt recursive re-routing.
-- If actual Git/filesystem state contradicts persisted artifacts, actual state is highest priority and must be reconciled into `progress.md` before continuing.
+- Resolve recovery priority locally by authority: Legacy uses actual state then its Markdown ledgers; Shadow uses actual state then the approved projection plus verified snapshot; Graph uses actual state then `dev-flow graph check`, `next`, and targeted `context`. Graph Markdown views are non-input evidence, never merge back, and are regenerated when stale, tampered, or conflicting.
+- For an unresolved gate, missing approval, stale signal, or required repair, Legacy reads `dev-flow-state.md`, Shadow reads the approved projection and verified snapshot, and Graph accepts the condition only from `dev-flow graph check`, `next`, and targeted `context`; Graph views are non-input evidence and are regenerated rather than used to select the recovery point.
+- If `progress.md` says a requirement change, stale task, failed task, skipped task, rollback, pause, or gate re-entry is pending, Legacy resumes that ledger recovery point; Shadow resumes only when the approved projection and verified snapshot contain it; Graph resumes only when `dev-flow graph check`, `next`, and targeted `context` select it. Graph views are non-input evidence and stale, tampered, or conflicting copies are regenerated.
+- If `dev-flow-state.md`, `task-orchestration.md`, and `progress.md` disagree, Legacy routes the ledger conflict to the current phase owner, Shadow reconciles the approved projection against its snapshot, and Graph ignores the views as non-input control and uses `dev-flow graph check`, `next`, and targeted `context` before regenerating them. If the active authority still cannot reconcile actual state after one attempt, hard-stop and present the actual-state conflict, the active authority result, and a recommendation; do not recursively re-route.
+- If actual Git/filesystem state contradicts active control state, actual state is the change input: Legacy repairs its Markdown ledgers; Shadow repairs the approved projection and creates a new explicit snapshot; Graph records impact or a legal transition through the CLI/API, reruns `check`, `next`, and targeted `context`, and regenerates views. A Graph view is never an input to that correction.
+- Preview `dev-flow graph impact` for requirement, artifact, file, or task changes. `unknown_impact` requires conservative Master/Loop replanning and is never evidence of no impact.
 - Chat memory is lowest priority and must not override persisted artifacts or actual state.
 
 ## Guardrails

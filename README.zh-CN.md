@@ -25,6 +25,18 @@ flowchart LR
   D -->|任务失败/偏移| C
 ```
 
+## Graph Control Kernel
+
+Dev Flow 提供可选的 Node.js ESM Graph Control Kernel，用于确定性的流程状态与查询。它新增 `dev-flow graph init`、`check`、`impact`、`next`、`context`、`transition`，支持人类可读或 `--json` 输出；稳定结果含义以 `dev-flow graph --help` 为准。
+
+- Legacy：现有 Markdown 工作流保持权威。
+- Shadow：通过 fenced `dev-flow-graph` JSON projection 显式启用，单向生成只读 Graph，并报告 projection 错误或差异。
+- Graph：`Docs/<topic>/dev-flow-graph.json` 保持权威并生成 Markdown 视图；Loop 使用隔离的 `Docs/<topic>/loop/loop-graph.json`。
+- 原始事件和临时证据保存在 `.dev-flow/runtime/<run-id>/`。
+- Loop 与 Master 保持隔离，只通过结构化 phase handoff 和 acceptance/phase-eval result 连接；Master 持久化 accepted-handoff receipt，作为 result 创建的准入根。
+
+Kernel 保留 OpenSpec/opsx、用户 Gate、独立 checker、Git 权限和副作用边界。AJV 是唯一运行时依赖；npm 包包含 `lib/graph/**` 与 `schemas/**`。完整的权威模式、命令、结果处理、持久化、兼容策略、Skill 质量检查与限制见 [Graph Control Kernel](docs/graph-control-kernel.md)。
+
 ## 为什么需要这个
 
 大多数 AI 编程 Agent 的失败根源在于工作流问题：
@@ -260,7 +272,7 @@ Doctor 命令还检查：`/dev-flow-scheduler`、已审批的自动化边界、�
 ## 安全模型
 
 - 在澄清不完整时，启动或刷新 OpenSpec/opsx 制品前需用户确认。
-- 关卡审批和必需信号记录在 `dev-flow-state.md`；聊天记忆不足以作为受治理完成的证据。
+- Gate/控制事实按模式持久化：Legacy 写入 `dev-flow-state.md`；Shadow 写入已批准的 Markdown source，并显式创建新的单向 snapshot；Graph 仅通过 Graph CLI/API 写控制事实，Markdown 只作证据或生成视图。聊天记忆不能作为完成证据。
 - 所有实现工作以 OpenSpec/opsx 制品作为实现基线；若 OpenSpec/opsx 不可用，工作流停下来等待用户指示，而不是默默进行纯聊天式或临时规划。
 - 第二阶段关卡在实现开始前展示拟定的执行主体；直接并发写入和 worktree 创建需明确批准。
 - 第三阶段所有实现任务仅通过 sub-agent 执行；主 agent 只负责协调，不直接编辑代码、测试或配置文件。

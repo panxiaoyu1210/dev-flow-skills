@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/phase-handoff.schema.json",
+  "title": "Dev Flow Loop/Master phase handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "handoffId", "direction", "phaseId", "phaseHash", "fromGraph", "toGraph",
+    "goalId", "baselineId", "baselineHash", "evalId", "requirementRefs", "requirementSummaries", "artifactRefs", "envelopeRef",
+    "envelopeSummary", "budgetRef", "budgetSummary", "issuedAt", "projectionHash"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "handoffId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "direction": {"const": "loop_to_master"},
+    "phaseId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "phaseHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+    "fromGraph": {
+      "allOf": [
+        {"$ref": "#/$defs/graphRef"},
+        {"type": "object", "properties": {"kind": {"const": "loop"}}}
+      ]
+    },
+    "toGraph": {
+      "allOf": [
+        {"$ref": "#/$defs/graphRef"},
+        {"type": "object", "properties": {"kind": {"const": "master"}}}
+      ]
+    },
+    "goalId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "baselineId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "baselineHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+    "evalId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "requirementRefs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}},
+    "requirementSummaries": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/requirementSummary"}
+    },
+    "artifactRefs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "envelopeRef": {"type": "string", "minLength": 1},
+    "envelopeSummary": {"$ref": "#/$defs/controlSummary"},
+    "budgetRef": {"type": "string", "minLength": 1},
+    "budgetSummary": {"$ref": "#/$defs/controlSummary"},
+    "issuedAt": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/timestamp"},
+    "projectionHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"}
+  },
+  "$defs": {
+    "requirementSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "ref", "hash", "sourceRevision"],
+      "properties": {
+        "id": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+        "ref": {"type": "string", "minLength": 1},
+        "hash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+        "sourceRevision": {"type": "string", "minLength": 1}
+      }
+    },
+    "controlSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "ref", "hash"],
+      "properties": {
+        "id": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+        "status": {"$ref": "https://dev-flow.dev/schemas/v1/node.schema.json#/properties/status"},
+        "ref": {"type": "string", "minLength": 1},
+        "hash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"}
+      }
+    },
+    "graphRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "hash", "schemaVersion"],
+      "properties": {
+        "kind": {"enum": ["loop", "master"]},
+        "id": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+        "hash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+        "schemaVersion": {"const": "1.0.0"}
+      }
+    }
+  }
+}

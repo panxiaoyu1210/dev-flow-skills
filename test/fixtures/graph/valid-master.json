@@ -1,0 +1,109 @@
+{
+  "$schema": "https://dev-flow.dev/schemas/v1/master-graph.schema.json",
+  "schemaVersion": "1.0.0",
+  "graphKind": "master",
+  "id": "master.checkout",
+  "topicRef": "Docs/checkout",
+  "authority": {
+    "mode": "graph",
+    "sourceOfTruth": "graph",
+    "syncDirection": "graph_to_markdown_view",
+    "graphMutationAllowed": true,
+    "markdownViewReadableAsAuthority": false
+  },
+  "revision": 1,
+  "acyclicEdgeTypes": ["depends_on", "control"],
+  "nodes": [
+    {
+      "id": "req.checkout",
+      "type": "Requirement",
+      "status": "ready",
+      "ref": "openspec/changes/checkout/specs/checkout/spec.md#checkout",
+      "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceRevision": "git:abc123"
+    },
+    {
+      "id": "task.checkout",
+      "type": "Task",
+      "status": "planned",
+      "ref": "openspec/changes/checkout/tasks.md#task-1",
+      "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sourceRevision": "git:abc123",
+      "owner": "implementation",
+      "actorId": "maker.checkout",
+      "reviewerActorId": "reviewer.checkout",
+      "parallelGroup": "checkout",
+      "files": ["src/checkout.mjs"],
+      "symbols": ["checkout"]
+    },
+    {
+      "id": "test.checkout",
+      "type": "Test",
+      "status": "ready",
+      "ref": "test/checkout.test.mjs#happy-path",
+      "hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "sourceRevision": "git:abc123"
+    },
+    {
+      "id": "evidence.checkout",
+      "type": "Evidence",
+      "status": "passed",
+      "subjectId": "req.checkout",
+      "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceRevision": "git:abc123",
+      "summary": "Requirement and implementation plan agree.",
+      "capturedAt": "2026-07-24T09:00:00.000Z",
+      "expiresAt": "2099-07-24T09:00:00.000Z"
+    },
+    {
+      "id": "gate.checkout",
+      "type": "Gate",
+      "status": "pending",
+      "prerequisiteIds": ["evidence.checkout"],
+      "owner": "checker"
+    },
+    {
+      "id": "git.checkout",
+      "type": "Git",
+      "status": "pending",
+      "ref": "git:worktree"
+    },
+    {
+      "id": "failure.checkout",
+      "type": "Failure",
+      "status": "resolved",
+      "summary": "No active failure."
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge.task-requirement",
+      "type": "implements",
+      "from": "req.checkout",
+      "to": "task.checkout"
+    },
+    {
+      "id": "edge.test-requirement",
+      "type": "verifies",
+      "from": "test.checkout",
+      "to": "req.checkout"
+    },
+    {
+      "id": "edge.gate-evidence",
+      "type": "requires",
+      "from": "gate.checkout",
+      "to": "evidence.checkout"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "permission.gate-transition",
+      "actorId": "checker.checkout",
+      "action": "transition",
+      "resourceRef": "gate.checkout",
+      "effect": "allow"
+    }
+  ],
+  "handoffReceipts": [],
+  "eventRefs": []
+}

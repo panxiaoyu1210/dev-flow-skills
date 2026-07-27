@@ -13,7 +13,9 @@
 
 ## Phase 2 — Task Orchestration
 
-After OpenSpec Baseline Gate is explicitly approved, read the persisted OpenSpec/opsx artifacts, `dev-flow-state.md`, and any loop baseline references. Files are source of truth; do not infer from chat when files exist.
+When a Master Graph is active, materialize the phase Task/Test/Gate references through the versioned Graph contract, run `dev-flow graph check`, and use `next`/targeted `context` to verify eligibility and blockers. The Graph validator is authoritative for duplicate IDs, missing references, cycles, requirement-task-test coverage, overlap conflicts, gate prerequisites, reviewer independence, evidence freshness, and permission conflicts. This Markdown file is the authority in Legacy, the explicit fenced projection source in Shadow, and a human execution plan/evidence view in Graph mode; Graph control changes use only the CLI/API.
+
+After OpenSpec Baseline Gate is explicitly approved, read the persisted OpenSpec/opsx artifacts, active-mode control state, and any loop baseline references. OpenSpec files remain the prose source and the selected authority holds control facts; do not infer either from chat.
 
 Main duties:
 
@@ -22,12 +24,12 @@ Main duties:
 3. Detect and resolve cycles before writing final orchestration.
 4. Group tasks into execution batches; same-batch tasks have no unmet dependencies and no unresolved high file/symbol overlap risk.
 5. Convert the detailed test plan into concrete per-task, per-batch, final integration, and system-level checks.
-6. Write `Docs/<topic>/task-orchestration.md` or the canonical legacy path.
+6. Persist the plan by authority mode: Legacy writes `Docs/<topic>/task-orchestration.md` or the approved Legacy path; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes modeled control changes through the Master Graph CLI/API before refreshing `task-orchestration.md` as the human plan/evidence view.
 7. Run a checker subagent against raw OpenSpec artifacts and `task-orchestration.md`; this checker is mandatory and preauthorized by the Phase 2 planning gate once orchestration exists, so do not ask the user separately whether to run it. Apply the bounded convergence policy from `dev-flow-planning/SKILL.md`: address material findings and re-review only while the effective `max_checker_evaluations` budget remains, not to chase the score or consume the budget.
 
 ## Loop Phase DAG Versus Task DAG
 
-When work enters from `dev-flow-loop`, the Loop Phase DAG is already the cross-phase source of truth. `task-orchestration.md` must cover only the current phase's implementation DAG.
+When work enters from `dev-flow-loop`, cross-phase control comes from the Loop Graph in Graph mode or the approved Loop Phase DAG source in Legacy/Shadow. `task-orchestration.md` covers only the current phase's implementation DAG.
 
 Required handling:
 
@@ -37,6 +39,7 @@ Required handling:
 - Use phase-level OpenSpec/opsx artifacts as the phase spec/task source before implementation.
 - Map the phase test plan into per-task TDD entry tests, batch checks, final acceptance checks, and system-level checks.
 - Return to `dev-flow-loop` after acceptance so loop eval can decide next phase or repair round.
+- Consume only the structured Loop phase handoff. Planning cannot modify the Loop Baseline or reorder Loop phases from the Master Graph.
 
 ### Required Task Schema
 
@@ -147,4 +150,4 @@ If a cycle exists:
 
 ### Phase 2 Signal
 
-Emit and persist `task_orchestration_ready` with: task-orchestration path, task count, batch count, DAG/cycle status, parallel-safety status, forced-serial tasks, detailed Executable Test Matrix status, system-level acceptance checks, `checker_score`, checker findings, automation readiness result, blockers, and the `dev-flow-state.md` path.
+Emit and persist `task_orchestration_ready` through the active authority with: task-orchestration reference, task/batch counts, DAG/cycle status, parallel-safety status, forced-serial tasks, Executable Test Matrix status, system checks, checker outcome/findings, automation readiness, blockers, and the control-state reference.

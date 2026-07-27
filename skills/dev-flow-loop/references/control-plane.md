@@ -31,11 +31,13 @@
 
 ## Loop Versus Dev-Flow Boundary
 
+The Graph kernel implements this boundary with two isolated contracts. Loop Graph owns Goal/Baseline/Phase/Envelope/Budget/Eval; Master Graph owns Requirement/Task/Test/Gate/Evidence/Git/Failure. They exchange only a versioned phase handoff and acceptance/phase-eval result. Neither Graph may mutate the other's owned nodes.
+
 | Layer | Owns | Must not own |
 |---|---|---|
 | `dev-flow-loop` | goal retention, user-confirmed baseline, Loop Phase DAG, envelope, phase_eval/loop_eval decisions, cross-phase trace | phase implementation, phase-local task settlement, commits/pushes/PRs |
 | `dev-flow` | phase-level OpenSpec/opsx artifacts, phase task DAG, TDD implementation, acceptance evidence | redefining loop goal, replacing confirmed baseline, cross-phase stop policy |
-| `phase_eval` / `loop_eval` | checker quality checkpoint per phase (`phase_eval_result`) or final loop summary (`loop_eval_result`); both persisted to `loop-state.md` | independent `/dev-flow-cr`, `cr_report_ready`, implementation fixes, baseline changes |
+| `phase_eval` / `loop_eval` | checker checkpoint persisted locally by authority mode: Legacy writes `loop-state.md`; Shadow writes the approved fenced Markdown projection source and creates a new snapshot; Graph writes through the Loop Graph CLI/API before refreshing the evidence view | independent `/dev-flow-cr`, `cr_report_ready`, implementation fixes, baseline changes |
 | `dev-flow-cr` | independent user-triggered CR after user request | automatic loop checkpoint, implementation fixes, baseline changes |
 | `dev-flow-scheduler` | approved cron/heartbeat automation lifecycle | loop design, triage, implementation |
 | `dev-flow-loop-triage` | candidate discovery and readable next-step recommendation | fixing candidates, running dev-flow, creating schedules |
@@ -57,12 +59,15 @@ The loop artifact directory may contain only outer-loop control artifacts:
 - `loop-envelope.md`
 - `loop-state.md`
 - `phase-artifacts.md` or `opsx-index.md`
+- `loop-graph.json` and generated `loop-graph.md` when Graph mode is selected
 
 These are Git-tracked formal artifacts when the active repository and integration mode permit tracking. Do not place raw checker responses, test logs, coverage, screenshots/video, browser traces, benchmark/timing files, debug dumps, or temporary patches in this directory; store workflow-created transient evidence under `.dev-flow/runtime/<run-id>/` using the local `.git/info/exclude` policy from `dev-flow-git`. Use its staging allowlist for formal artifacts; do not use `git add -A` or `git add .`.
 
 OpenSpec/opsx originals remain in the project's standard location, normally `openspec/changes/<change-id>/`. Do not move or copy OpenSpec originals into the loop directory. The loop directory records links, status, evidence paths, and phase mappings only.
 
-Use `phase-artifacts.md` or `opsx-index.md` as the phase artifact index. Each row should record: phase ID, OpenSpec/opsx change ID, canonical change path, current status, related `task-orchestration.md`, verification command/result summary, `phase_eval_result`, and unresolved risks. Raw evidence remains local runtime output and is not copied into the index.
+Authority is explicit: Legacy uses `loop-state.md`; Shadow opts in through an approved fenced `dev-flow-graph` projection, derives a read-only snapshot, and blocks on projection errors or drift; Graph uses `loop-graph.json` and treats Markdown as a generated/evidence view. Raw events remain under `.dev-flow/runtime/<run-id>/`. Never merge Graph and Markdown in both directions.
+
+Use `phase-artifacts.md` or `opsx-index.md` as the phase artifact index. Update each row only after the active authority is current: Legacy updates `loop-state.md`; Shadow updates its approved fenced Markdown projection source and creates a fresh snapshot; Graph updates modeled facts through the Loop Graph CLI/API. The index then records phase ID, OpenSpec/opsx change ID, canonical change path, current status, related `task-orchestration.md`, verification command/result summary, `phase_eval_result`, and unresolved risks as evidence, never as independent control authority. Raw evidence remains local runtime output and is not copied into the index.
 
 Example:
 
@@ -128,18 +133,20 @@ openspec/
    - Revise only material findings, then re-review while the effective `max_checker_evaluations` budget remains
    - A 90–94 score may pass under `§Bounded Convergence Policy`; otherwise stop at the configured evaluation limit and report the blocker
 8. Present the Loop Phase DAG, `auto_continue_scope`, `dev_flow_phase_handoff`, budgets, stop conditions, and side-effect boundaries — together with the DAG/Envelope checker score — for Execution Envelope Gate approval.
-9. Freeze the baseline only after Baseline Docs Gate and Execution Envelope Gate are both approved. The moment Execution Envelope Gate is approved, update the `auto_continue_scope` field inside `loop-envelope.md` itself from its pre-approval draft value (e.g. `disabled`) to the approved value (e.g. `within_confirmed_baseline`); do not leave the envelope document holding a stale pre-approval value while only `loop-state.md` records the approved value. A reader of `loop-envelope.md` alone must see the current authorized scope, not a draft note saying what it will become.
+9. Freeze the baseline only after both gates are approved. The moment Execution Envelope Gate is approved, persist `auto_continue_scope` locally by authority mode: Legacy updates `loop-envelope.md` and `loop-state.md`; Shadow updates the approved fenced Markdown projection source and creates a new snapshot; Graph writes through the Loop Graph CLI/API and only then refreshes those evidence views. Never leave the active authority with a stale draft scope.
 10. For each ready phase, hand off to dev-flow in loop-authorized phase mode:
+   - when Graph control is active, create and validate the versioned structured phase handoff against current Loop and Master Graph hashes before phase planning starts
    - **Before starting implementation**, verify that `openspec_artifact_ready.checker_score` and `task_orchestration_ready.checker_score` are recorded and satisfy dev-flow-planning's bounded convergence policy; if either is absent or `not-ready`, wait for the planning checker decision before proceeding
    - preserve the loop goal and baseline ID
    - create phase-level OpenSpec/opsx spec/tasks instead of rewriting the loop-only baseline artifacts
    - keep phase-level OpenSpec/opsx originals in `openspec/changes/<change-id>/` or the project's standard OpenSpec/opsx location
-   - update `phase-artifacts.md` or `opsx-index.md` with the phase-to-change mapping and status
+   - persist the phase-to-change mapping and status by authority mode: Legacy updates `loop-state.md`; Shadow updates its approved fenced Markdown projection source and creates a fresh snapshot; Graph updates through the Loop Graph CLI/API; then refresh `phase-artifacts.md` or `opsx-index.md` as the evidence index
    - create the phase-internal task DAG and Executable Test Matrix
    - create detailed test coverage for normal, edge, failure, integration, and system-level checks
    - require TDD per implementation task via `superpowers:test-driven-development` when available
    - collect acceptance and system-level evidence
 11. Run checker `phase_eval` after each phase or repair round using a checker subagent; this checker is mandatory and preauthorized by the loop gate for read-only review of phase evidence. The checker scores phase artifacts from 0–100; record `phase_eval_result.checker_score`. `phase_eval` is not `/dev-flow-cr`, must not emit `cr_report_ready`, and must not use the independent CR report schema.
+   - when Graph control is active, consume the bound Master acceptance result and persist a schema-valid loop-internal phase result before transitioning Phase/Eval state
 12. Decide:
    - continue to the next phase when `phase_eval` satisfies `§Bounded Convergence Policy` and dependencies are ready
    - run a repair round only for material issues inside baseline while budget remains
@@ -317,7 +324,7 @@ Scores below 90 or unresolved material findings remain `repairable` while the ap
 
 After Baseline Docs Gate and Execution Envelope Gate are both approved, the loop should auto-continue inside the confirmed baseline. It should not ask after every dev-flow phase gate that is already authorized by the baseline.
 
-When resuming a loop in a new turn or session, treat `loop-state.md`'s persisted `loop_envelope_ready.auto_continue_scope` as authoritative over `loop-envelope.md` if the two ever disagree, and immediately correct `loop-envelope.md` to match the persisted approved value. A disagreement means the envelope document was not updated after gate approval; fix the document rather than silently following its stale value or silently following the state file without repairing the source document.
+When resuming, resolve the authority mode before comparing controls. In Legacy, reconcile `loop-state.md` and `loop-envelope.md` using the approved gate record and update the stale Markdown ledger. In Shadow, reconcile the authoritative projection source, then create a new explicit one-way snapshot target; never mutate the snapshot. In Graph mode, query the Loop Graph and persist any correction only through the Graph CLI/API; `loop-state.md` and `loop-envelope.md` are evidence/generated views and never write back into the Graph. An unresolved disagreement blocks auto-continue.
 
 Auto-continue is allowed when all are true:
 
@@ -359,13 +366,15 @@ These defaults are stated to the user and recorded; they do not need a separate 
 | `trigger` | How the loop starts: manual request, heartbeat, schedule, external event, or background monitor. | Treat every non-manual trigger as envelope-required and approval-required. |
 | `trace` | The evidence trail of what was inspected, what was recommended, and what was deliberately not done. | Record artifacts, commands, unavailable sources, and side effects. |
 | `eval` | The checkpoint that decides whether the loop result is good enough. | Use a checker subagent for score, candidate confidence, missing-evidence limits, and boundary checks. |
-| `phase_eval` | Checker checkpoint after a phase or repair round. Produces `phase_eval_result` signal (schema: `skills/dev-flow-loop/SKILL.md#Required Signals`). Persisted to `loop-state.md`. | Must not call `/dev-flow-cr`, emit `cr_report_ready`, or replace user-triggered independent CR. |
+| `phase_eval` | Checker checkpoint after a phase or repair round. Produces `phase_eval_result` through the active authority; Legacy/Shadow expose it in `loop-state.md`, while Graph emits a downstream view. | Must not call `/dev-flow-cr`, emit `cr_report_ready`, or replace user-triggered independent CR. |
 | `maker-checker` | Separate proposal from review. | Use one pass to produce candidates/envelope and a separate pass to check safety before handoff. |
 | `handoff` | A user-readable next action for `/dev-flow`, `/dev-flow-cr`, `/dev-flow-scheduler`, manual action, or tracker work. | Ask a concrete confirmation question; after explicit candidate confirmation, enter the owner flow without requiring another slash command. |
 
 ## Loop Signal Fields
 
-Persist delivery-loop signals and user-approved persisted loop artifacts to `loop-state.md` in the loop artifact directory, never to `dev-flow-state.md`. For read-only triage or workflow design, emit signals in the reply unless the user asks to persist loop artifacts.
+Persist delivery-loop controls according to mode and never mix them into Master state. Legacy writes `loop-state.md`; Shadow writes its approved Markdown projection source and then creates a new explicit one-way snapshot; Graph writes control facts only through the Loop Graph CLI/API and generates `loop-state.md` as an evidence view. For read-only triage or workflow design, emit signals in the reply unless the user asks to persist loop artifacts.
+
+The YAML below is the Legacy compatibility view. In Graph mode, `schemas/v1/**` and `lib/graph/**` are the machine source of truth and `loop-state.md` is generated/evidence output; do not maintain the YAML and Graph as two writable stores.
 
 ```yaml
 loop_baseline_ready:
@@ -446,10 +455,10 @@ loop_control_ready:
 Use actual artifacts before memory:
 
 1. Git/filesystem state, including current diff and branch.
-2. CI/test output when available.
-3. OpenSpec/opsx change artifacts.
-4. dev-flow artifacts: `dev-flow-state.md`, `progress.md`, `task-orchestration.md`, `delivery-report.md`, CR reports.
-5. Loop artifacts when explicitly present: `loop-state.md` (canonical loop signal ledger), `phase-artifacts.md` or `opsx-index.md`, loop report, envelope, candidate inbox, trace log, `phase_eval_result` entries.
+2. Active Loop control state: Legacy reads `loop-state.md`; Shadow reads the approved projected Markdown source plus verified snapshot; Graph runs Loop Graph `check`, `next`, and targeted `context`, treating all Markdown views as non-input evidence and regenerating stale, tampered, or conflicting copies.
+3. CI/test output when available.
+4. OpenSpec/opsx change artifacts.
+5. Supporting dev-flow and Loop evidence: phase index, reports, envelope view, candidate inbox, trace, `phase_eval_result`, `dev-flow-state.md`, `progress.md`, `task-orchestration.md`, `delivery-report.md`, and CR reports.
 6. Local transient evidence under `.dev-flow/runtime/<run-id>/` when still available; it supports but does not replace concise results in formal artifacts.
 7. Issue/PR/tracker data when explicitly available.
 8. Chat memory as a hint only.

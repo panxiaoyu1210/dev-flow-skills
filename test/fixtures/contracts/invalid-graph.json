@@ -1,0 +1,20 @@
+{
+  "$schema": "https://dev-flow.dev/schemas/v1/graph.schema.json",
+  "schemaVersion": "1.0.0",
+  "graphKind": "master",
+  "id": "graph.contract",
+  "topicRef": "Docs/contract",
+  "authority": {
+    "mode": "legacy",
+    "sourceOfTruth": "markdown",
+    "syncDirection": "markdown_to_graph",
+    "graphMutationAllowed": false,
+    "markdownViewReadableAsAuthority": true
+  },
+  "revision": 0,
+  "acyclicEdgeTypes": ["depends_on", "control"],
+  "nodes": [],
+  "edges": [],
+  "permissions": [],
+  "eventRefs": []
+}

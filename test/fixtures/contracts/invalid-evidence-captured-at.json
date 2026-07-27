@@ -1,0 +1,11 @@
+{
+  "id": "evidence.invalid-captured-at",
+  "type": "Evidence",
+  "status": "passed",
+  "subjectId": "req.contract",
+  "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "sourceRevision": "git:abc123",
+  "summary": "Invalid calendar day must be rejected.",
+  "capturedAt": "2026-02-30T09:00:00Z",
+  "expiresAt": "2027-02-28T09:00:00Z"
+}

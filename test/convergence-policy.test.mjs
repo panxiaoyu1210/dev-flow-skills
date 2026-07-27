@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const policyFiles = [
+const policySource = 'skills/dev-flow-master/references/state-and-gates.md';
+const policyConsumers = [
   'skills/dev-flow-planning/SKILL.md',
   'skills/dev-flow-acceptance/SKILL.md',
   'skills/dev-flow-loop/SKILL.md',
-  'skills/dev-flow-master/references/state-and-gates.md',
 ];
 
 const mirroredFiles = [
@@ -26,16 +26,25 @@ async function read(relativePath) {
   return readFile(new URL(`../${relativePath}`, import.meta.url), 'utf8');
 }
 
-test('gate skills use bounded convergence instead of an unconditional 95-point loop', async () => {
-  for (const relativePath of policyFiles) {
+test('gate skills point to one bounded-convergence source instead of duplicating it', async () => {
+  const source = await read(policySource);
+  assert.match(source, /quality target[^\n]*95/i);
+  assert.match(source, /convergence floor[^\n]*90/i);
+  assert.match(source, /material finding/i);
+  assert.match(source, /max_checker_evaluations/i);
+  assert.match(source, /default[^\n]*3/i);
+  assert.doesNotMatch(source, /two checker evaluations/i);
+  assert.match(source, /YAML/i);
+
+  for (const relativePath of policyConsumers) {
     const content = await read(relativePath);
-    assert.match(content, /quality target[^\n]*95/i, `${relativePath} must keep 95 as a target`);
-    assert.match(content, /convergence floor[^\n]*90/i, `${relativePath} must define the 90-point floor`);
-    assert.match(content, /material finding/i, `${relativePath} must gate on material findings`);
-    assert.match(content, /max_checker_evaluations/i, `${relativePath} must use the configurable checker budget`);
-    assert.match(content, /default[^\n]*3/i, `${relativePath} must define the default checker budget`);
-    assert.doesNotMatch(content, /two checker evaluations/i, `${relativePath} must not hard-code two evaluations`);
-    assert.match(content, /YAML/i, `${relativePath} must reject non-functional YAML churn`);
+    assert.match(content, /dev-flow-master\/references\/state-and-gates\.md/,
+      `${relativePath} must point to the shared policy`);
+    assert.match(content, /bounded-convergence/i, `${relativePath} must name the shared rule`);
+    assert.doesNotMatch(content, /quality target[^\n]*95/i,
+      `${relativePath} must not duplicate threshold semantics`);
+    assert.doesNotMatch(content, /convergence floor[^\n]*90/i,
+      `${relativePath} must not duplicate threshold semantics`);
   }
 });
 

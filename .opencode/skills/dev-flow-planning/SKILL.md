@@ -1,39 +1,39 @@
 ---
 name: dev-flow-planning
-description: Use when dev-flow work needs OpenSpec/opsx baseline artifacts, independent checker review, task orchestration, DAG batches, detailed test planning, Git safety preparation, or executable test matrix before execution.
+description: Use when dev-flow needs OpenSpec/opsx baseline artifacts, independent checker review, task orchestration, DAG batches, detailed tests, Git safety preparation, or an executable test matrix.
 ---
 
 # dev-flow-planning
 
-Own governed planning before execution: pre-artifact clarification, OpenSpec/opsx baseline artifacts, independent checker review, and Phase 2 task orchestration. Produce and persist `documentation_start_approved`, `openspec_artifact_ready`, and `task_orchestration_ready` in `dev-flow-state.md`.
+Own governed planning before execution. It produces persisted planning signals and artifacts; it does not execute tasks or make runtime/Git decisions. All user-facing replies and persisted Markdown artifacts are written in Chinese.
 
-## Boundary
+## Machine Authority
 
-This skill owns OpenSpec/opsx baseline artifact preparation, the pre-artifact gate, phase-level planning, detailed test planning, DAG orchestration, and the Executable Test Matrix. Does NOT execute tasks or make runtime decisions.
+The versioned contracts in `schemas/v1/` and the `dev-flow graph` CLI are the machine-rule source of truth. OpenSpec/opsx remains authoritative for requirement and design prose. Read `../dev-flow-master/references/graph-control.md` when planning has Graph state; the Skill never duplicates node fields, edge rules, or transition tables.
 
-## Language Policy
+## Steps
 
-All user-facing replies and all generated artifact documents (requirements, design, specs, CLI specs, test plans, delivery reports, and other persisted Markdown files) in dev-flow must be written in Chinese.
+1. **Recover planning inputs.** Read actual project state, OpenSpec/opsx, `dev-flow-state.md`, and any accepted Loop handoff. Run `dev-flow graph check` and targeted `context` when a Master Graph exists; use Legacy Markdown when it does not.
+   **Complete when:** authority, scope, open questions, accepted assumptions, current approvals, and stale evidence are reconciled.
 
-## Core Contract
+2. **Clear the pre-artifact gate.** Follow `references/pre-documentation-gate.md`: clarify material unknowns, record assumptions, and obtain explicit artifact-start approval before writing or refreshing OpenSpec/opsx.
+   **Complete when:** every blocking question is answered, explicitly accepted as risk, or persisted as a paused gate, and `documentation_start_approved` records the user's decision.
 
-- Do not draft or update formal OpenSpec/opsx artifacts immediately after routing into governed planning. Clarify first and obtain explicit artifact-start approval.
-- Keep `dev-flow-state.md` beside the planning artifacts from the first planning gate onward. Chat memory is not evidence for approvals.
-- All implementation work requires persisted OpenSpec/opsx artifacts. Medium/heavy work requires richer OpenSpec requirements/design/tasks/spec evidence, not separate fixed dev-flow planning files.
-- Any scoring, sufficiency review, gate pass/fail, or readiness decision must use a checker subagent that reviews raw artifacts and produces findings before the main agent revises. Persist the checker score and use bounded convergence: the quality target is 95, the convergence floor is 90, and `max_checker_evaluations` is a configurable per-checkpoint upper budget that defaults to 3. A 90–94 result may pass when objective checks pass and no P0/P1 or unresolved material finding remains, and either the checker reports only non-material findings or the latest re-review improves by fewer than 2 points. A material finding affects behavior, correctness, security, data integrity, compatibility, deployability, acceptance evidence, or a machine-consumed schema; prose style, formatting, YAML key order, or an unconsumed field name is non-material and must not trigger score-chasing edits or force the budget to be exhausted.
-- Required checker subagents are part of the planning gate once artifacts exist. Spawn them automatically for read-only review; do not ask the user for separate permission to run the checker, and do not substitute main-agent self-review for a checker score.
-- OpenSpec Baseline Gate and Phase 2 Gate are explicit user gates. Do not continue past them without approval.
-- After OpenSpec Baseline Gate approval, write `task-orchestration.md` with DAG batches, parallel-safety fields, detailed test matrix, and system-level acceptance checks.
-- In loop-authorized phase mode, treat the confirmed loop-only baseline artifacts as the upstream source of truth. Do not recreate the full loop baseline; create phase-level OpenSpec/opsx artifacts and the phase-internal `task-orchestration.md`. Before starting phase-level planning in loop-authorized mode, reload `loop-state.md` to confirm the loop baseline is still `user_confirmed` and the current phase is inside the Loop Phase DAG.
+3. **Build the OpenSpec baseline.** Follow `references/phase-1-documents.md`; in loop-authorized mode, reference the confirmed Loop baseline and create only phase-level OpenSpec/opsx. Apply the shared bounded-convergence rule from `../dev-flow-master/references/state-and-gates.md`.
+   **Complete when:** artifacts exist, objective sufficiency checks pass, material findings are resolved or explicitly routed, and `openspec_artifact_ready` is persisted.
 
-## References
+4. **Build phase orchestration.** Follow `references/task-orchestration.md` to map requirements to a cycle-free phase-internal task DAG, overlap-safe batches, TDD entries, final/system checks, and Git assumptions. Use `dev-flow graph impact` to preview changed control references; in Graph mode apply stale propagation before rebuilding downstream readiness.
+   **Complete when:** every requirement and acceptance item maps to at least one task and check, every task has a checkable done condition, and the independent orchestration checker supports `task_orchestration_ready`.
 
-- Read `references/pre-documentation-gate.md` before asking clarification questions, recording assumptions, or emitting `documentation_start_approved`.
-- Read `references/phase-1-documents.md` before creating or revising OpenSpec/opsx baseline artifacts, running independent checker review, or presenting OpenSpec Baseline Gate.
-- Read `references/task-orchestration.md` before creating DAG tasks, batches, detailed test matrix, automation readiness checks, or `task_orchestration_ready`.
+5. **Present the next gate.** Load `dev-flow-git`, reconcile `git_safe`, and use Graph `next`/`context` when available. Planning proposes evidence; only the owning gate records a transition.
+   **Complete when:** Phase 2 presentation names task/batch counts, overlap constraints, executable checks, execution actor, Git boundary, checker result, blockers, and the exact approval requested.
 
-## Required Signal
+## Context Pointers
 
-Emits `documentation_start_approved`, `openspec_artifact_ready`, and `task_orchestration_ready`. Full YAML schemas are in `references/state-and-gates.md § Signal Schemas`.
+- `references/pre-documentation-gate.md`: clarification and artifact-start approval.
+- `references/phase-1-documents.md`: OpenSpec baseline, checker policy, and loop phase slicing.
+- `references/task-orchestration.md`: task schema, DAG, batches, tests, and automation readiness.
+- `../dev-flow-master/references/graph-control.md`: Master Graph authority, commands, impact, context, and transitions.
+- `../dev-flow-master/references/state-and-gates.md` § Bounded Convergence Policy: the single source for checker thresholds, materiality, and evaluation budget semantics.
 
-Persist paths, gate summaries, approvals, unresolved risks, and stale/repair notes in `dev-flow-state.md`. Never leave final governed planning artifacts only in chat.
+Completion means all five steps meet their **Complete when:** criteria; artifact existence alone is not planning readiness.

@@ -1,39 +1,40 @@
 ---
 name: dev-flow-acceptance
-description: Use when dev-flow execution batches are complete and the main agent must run final acceptance, collect quality evidence, write delivery report, and decide readiness.
+description: Use when dev-flow execution is settled and the main agent must run final acceptance, collect evidence, write the delivery report, produce a phase result, or decide readiness.
 ---
 
 # dev-flow-acceptance
 
-## Boundary
+Own final readiness and the delivery report. It verifies completed work; it does not implement fixes or bypass earlier gates. All user-facing replies and persisted Markdown artifacts are written in Chinese.
 
-This skill owns final readiness assessment, evidence collection, and delivery report generation.
+## Machine Authority
 
-Does NOT execute tasks, modify code, or re-enter earlier phases.
+The versioned contracts in `schemas/v1/` and the `dev-flow graph` CLI are the machine-rule source of truth. Read `../dev-flow-master/references/graph-control.md` for Master readiness and `../dev-flow-loop/references/graph-control.md` before returning a structured Loop phase result.
 
-## Language Policy
+Apply the shared bounded-convergence rule from `../dev-flow-master/references/state-and-gates.md`; acceptance does not redefine checker thresholds or materiality.
 
-All user-facing replies and all generated artifact documents (requirements, design, specs, CLI specs, test plans, delivery reports, and other persisted Markdown files) in dev-flow must be written in Chinese.
+## Steps
 
-Own final acceptance after DAG batches or lightweight opsx/OpenSpec work are complete, deferred, or replanned. Acceptance decides readiness; it does not rely on chat memory or agent self-reporting.
+1. **Reconcile acceptance inputs.** Follow `references/readiness-and-report.md`; read actual Git/filesystem state, OpenSpec/opsx, orchestration, progress, task evidence, and any accepted phase handoff. Run `dev-flow graph check` and targeted `context` when a Master Graph exists.
+   **Complete when:** every planned task, requirement, test, gate, evidence record, Git state, deferral, and handoff coordinate is accounted for at the current revision.
 
-Use `superpowers:verification-before-completion` when available before claiming complete, fixed, passing, or ready.
+2. **Run fresh proving checks.** Execute the final and system-level matrix, verify `/opsx:verify <change>`, inspect transient evidence without promoting raw output, and use Graph `next` to expose any remaining blockers.
+   **Complete when:** every required command has a fresh result or an explicit approved deferral with acceptance impact.
 
-## Core Contract
+3. **Obtain independent judgment.** Give the independent acceptance checker raw artifacts, diff, commands, TDD evidence, and draft report without the main agent's expected conclusion. Apply bounded convergence only to material findings.
+   **Complete when:** the checker satisfies policy with no P0/P1 or unresolved material finding, or returns a concrete `not-ready` route.
 
-- Reconcile persisted artifacts, actual Git/filesystem state, task results, and Runtime Orchestration State.
-- Run final and system-level checks from the Executable Test Matrix, and verify all work against `/opsx:verify <change>` evidence.
-- Use an independent checker subagent for final requirements/design/test coverage and readiness judgments; the main agent may collect evidence but must not be the only reviewer for pass/fail. Persist the score and use bounded convergence: the quality target is 95, the convergence floor is 90, and `max_checker_evaluations` is a configurable per-checkpoint upper budget that defaults to 3. A 90–94 result may pass when all objective checks pass and no P0/P1 or unresolved material finding remains, and either the checker reports only non-material findings or the latest re-review improves by fewer than 2 points. A material finding affects behavior, correctness, security, data integrity, compatibility, deployability, acceptance evidence, or a machine-consumed schema; prose style, formatting, YAML key order, or an unconsumed field name is non-material and must not trigger score-chasing edits or force the budget to be exhausted.
-- Confirm task local verification evidence, TDD evidence, phase-level OpenSpec/opsx evidence, and canonical Git/patch integration states. Independent CR is user-triggered through `/dev-flow-cr`; loop-authorized phases may feed acceptance evidence to `phase_eval`, which must not call `/dev-flow-cr` or emit `cr_report_ready`.
-- Write `delivery-report.md` for governed work and record readiness evidence for lightweight opsx/OpenSpec work.
-- Report `not-ready` or `ready-for-review` when required evidence is missing; do not claim completion.
+4. **Persist readiness.** Write the governed delivery report and aggregate `review_evidence_ready`/`acceptance_ready`. In Graph mode, transition only after all prerequisites and permissions pass; for loop-authorized work, create the schema-valid Master-to-Loop acceptance result.
+   **Complete when:** report, evidence hashes/summaries, readiness state, and actual repository state agree.
 
-Read `references/readiness-and-report.md` before final verification, delivery report writing, failure recovery, readiness decisions, or emitting `acceptance_ready`.
+5. **Return control.** Report `ready-to-report`, `ready-for-review`, or `not-ready`. A Loop phase result goes back through the accepted handoff; ordinary failures route to execution/planning. Independent CR remains separately user-triggered.
+   **Complete when:** the final state names evidence, residual risk, Git status, next owner/action, and any blocked criterion without claiming more than tests prove.
 
-## References
+## Context Pointers
 
-Load `references/readiness-and-report.md` for readiness checklist, report template, and signal schema.
+- `references/readiness-and-report.md`: acceptance inputs, checks, report, checker, failure recovery, and signal.
+- `../dev-flow-master/references/graph-control.md`: Master Graph readiness and completion transitions.
+- `../dev-flow-loop/references/graph-control.md`: structured handoff and acceptance/phase-eval result.
+- `../dev-flow-master/references/state-and-gates.md` § Bounded Convergence Policy: the single source for checker thresholds, materiality, and evaluation budget semantics.
 
-## Required Signal
-
-Emits `acceptance_ready`. Full schema defined in `references/readiness-and-report.md`.
+Artifact existence, an agent report, or a passing subset of tests is never acceptance completion.

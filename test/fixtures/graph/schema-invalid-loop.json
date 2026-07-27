@@ -1,0 +1,20 @@
+{
+  "$schema": "https://dev-flow.dev/schemas/v1/loop-graph.schema.json",
+  "schemaVersion": "1.0.0",
+  "graphKind": "loop",
+  "id": "loop.invalid",
+  "topicRef": "Docs/invalid/loop",
+  "authority": {
+    "mode": "graph",
+    "sourceOfTruth": "graph",
+    "syncDirection": "graph_to_markdown_view",
+    "graphMutationAllowed": true,
+    "markdownViewReadableAsAuthority": false
+  },
+  "revision": 0,
+  "acyclicEdgeTypes": ["depends_on", "control"],
+  "nodes": [{"id": "task.invalid", "type": "Task", "status": "planned"}],
+  "edges": [],
+  "permissions": [],
+  "eventRefs": []
+}

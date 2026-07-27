@@ -1,51 +1,38 @@
 ---
 name: dev-flow-execution
-description: Use when Phase 3 has started and the agent must execute continuously, dynamically replan tasks, verify results, handle sub-agent settlement, and maintain runtime orchestration state.
+description: Use when Phase 3 has started and dev-flow must execute continuously, dispatch and review tasks, replan safely, verify results, and maintain recoverable runtime state.
 ---
 
 # dev-flow-execution
 
-## Boundary
+Own Phase 3 from approved orchestration through settlement. The main agent coordinates; implementation tasks are dispatched to sub-agents and independently reviewed. All user-facing replies and persisted Markdown artifacts are written in Chinese.
 
-This skill owns Phase 3 continuous execution: task dispatch, sub-agent coordination, settlement, replanning, and recovery.
+## Machine Authority
 
-Does NOT make architectural decisions, modify planning artifacts, or bypass OpenSpec Baseline / Phase 2 gates.
+The versioned contracts in `schemas/v1/` and the `dev-flow graph` CLI are the machine-rule source of truth. Read `../dev-flow-master/references/graph-control.md` before Graph-driven dispatch, stale propagation, or status change; operational details remain in the references below.
 
-## Language Policy
+## Steps
 
-All user-facing replies and all generated artifact documents (requirements, design, specs, CLI specs, test plans, delivery reports, and other persisted Markdown files) in dev-flow must be written in Chinese.
+1. **Reconstruct runtime truth.** Re-read actual Git/filesystem state, OpenSpec/opsx, `dev-flow-state.md`, orchestration, progress, and current Graph. Run `dev-flow graph check`, `next`, and targeted `context` when Graph state exists.
+   **Complete when:** the Runtime Orchestration State agrees with persisted artifacts and actual state, and every pending/running/blocked task is accounted for.
 
-## Core Contract
+2. **Dispatch eligible work.** Follow `references/runtime-and-dispatch.md` and the approved `git_safe` writer cap. Dispatch only tasks returned as eligible by the current DAG/Graph; keep high-overlap writers serial.
+   **Complete when:** every dispatched task has satisfied dependencies, scoped context, acceptance checks, TDD expectations, reviewer contract, and permitted side effects.
 
-Own Phase 3 run-to-completion execution after Phase 2 Gate is cleared. The main agent is coordinator only; all implementation tasks must be dispatched to sub-agents. Maintain Runtime Orchestration State, dispatch tasks under Git/writer limits, verify done signals, update progress, and move to acceptance when settled.
+3. **Settle each task.** Follow `references/task-settlement-and-modes.md`. Require observed RED, minimal GREEN, refactor verification or approved exception; then obtain an independent reviewer verdict. Record Graph `transition` only after evidence and permission are present.
+   **Complete when:** each task has a final signal, reviewer resolution, fresh diagnostics/tests, evidence summary, and canonical Git integration state.
 
-Every implementation task, lightweight or heavyweight, must use `superpowers:test-driven-development` when available, or the local equivalent: failing test first, observed RED, minimal GREEN, refactor after green, and recorded evidence. This is a per-task execution rule, not a loop-layer responsibility.
+4. **Propagate change and replan.** Preview `dev-flow graph impact` for changed requirement/artifact/file/task sources. In Graph mode apply typed stale propagation; `unknown_impact` routes conservatively to Master replanning. Follow `references/replanning-and-recovery.md` for inside-baseline changes and gate re-entry.
+   **Complete when:** affected nodes/tasks, DAG batches, tests, progress, and recovery owner reflect the same revision; no new dispatch uses stale context.
 
-After each implementing sub-agent reports `final_success` (or after the main agent applies and verifies a patch in patch mode), dispatch a reviewer sub-agent to independently verify the task diff and evidence before the task is settled. See `references/task-settlement-and-modes.md § Per-Task Reviewer Protocol`.
+5. **Run to settlement.** Continue across task and batch boundaries while a safe eligible action exists. Query `next` after each material update; stop only on a documented hard-stop or transfer to acceptance after all work settles.
+   **Complete when:** `execution_settled` truthfully records every task outcome, replan, TDD/local-verification evidence, test result, Git state, and unresolved blocker.
 
-## References
+## Context Pointers
 
-Load `references/runtime-and-dispatch.md` for the run-to-completion loop and agent cap rules. Load `references/task-settlement-and-modes.md` for execution mode rules and settlement protocol. Load `references/replanning-and-recovery.md` for replan and recovery rules.
+- `references/runtime-and-dispatch.md`: run-to-completion state, agent cap, and eligibility.
+- `references/task-settlement-and-modes.md`: modes, final signals, TDD, reviewer, and retry protocol.
+- `references/replanning-and-recovery.md`: impact classes, recovery priority, replanning, and progress.
+- `../dev-flow-master/references/graph-control.md`: Master Graph queries, contexts, impact, and transitions.
 
-- Execute continuously after Phase 2 approval; do not stop after a task, batch, progress update, patch-ready output, or automatic inside-baseline replan when safe to continue.
-- The main agent remains coordinator for task dispatch, Git boundaries, verification, progress, and integration.
-- Evaluate multi-agent/subagent execution after Phase 2 planning. Use concurrent writers only when the user approves the proposed execution actor and Git/writer limits allow it.
-- Rebuild Runtime Orchestration State from persisted artifacts and actual Git/filesystem state after changes or recovery. Never dispatch from stale memory.
-
-Read `references/runtime-and-dispatch.md` before selecting agent cap, sub-waves, runtime state, or run-to-completion behavior.
-
-## Task Settlement
-
-A task is settled only by a final signal: `final_success`, `final_failed`, `final_blocked`, or `cancelled_by_master`. Intermediate test failures, type errors, retries, or conflict telemetry are not final outcomes. In sub-agent modes, `final_success` from the implementing agent is not yet settled — reviewer approval is required first (see `references/task-settlement-and-modes.md § Per-Task Reviewer Protocol`).
-
-Read `references/task-settlement-and-modes.md` before judging task completion, using shared-worktree patch mode, using shared-working-tree serial agent mode, applying per-task rules, or handling failures.
-
-## Replanning And Recovery
-
-Inside-baseline replanning is allowed and should continue automatically after artifacts are updated. Requirement or acceptance-baseline changes are governance events and require returning to planning/gates.
-
-Read `references/replanning-and-recovery.md` before changing orchestration, handling user requirement changes, recording fallbacks, updating `progress.md`, recovering after interruption, or emitting `execution_settled` / `review_evidence_ready`.
-
-## Required Signal
-
-Emits `execution_settled` when Phase 3 completes. Also produces `review_evidence_ready` (aggregated by dev-flow-acceptance). Full YAML schemas are in `dev-flow-master/references/state-and-gates.md` § Signal Schemas.
+A task, batch, or phase is incomplete until its proving evidence is fresh and the corresponding state is settled; an agent success message alone is not completion.

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "graphId": "master.contract",
+  "graphHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "owner": "implementation",
+  "action": "execute_task",
+  "selectedNodeIds": ["task.contract"],
+  "blockedNodeIds": [],
+  "reasonCodes": [],
+  "refs": ["openspec/changes/contract/tasks.md#task-1"],
+  "nodeSummaries": [{"id": "task.contract", "type": "Task", "status": "ready"}],
+  "evidenceSummaries": [],
+  "permissions": []
+}

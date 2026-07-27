@@ -25,6 +25,18 @@ flowchart LR
   D -->|Task failure / drift| C
 ```
 
+## Graph Control Kernel
+
+Dev Flow includes an optional Node.js ESM Graph Control Kernel for deterministic workflow state and queries. It adds `dev-flow graph init`, `check`, `impact`, `next`, `context`, and `transition` with human or `--json` output; `dev-flow graph --help` defines stable result meanings.
+
+- Legacy keeps the existing Markdown workflow authoritative.
+- Shadow explicitly opts in through a fenced `dev-flow-graph` JSON projection, derives a read-only Graph, and reports projection errors or drift.
+- Graph makes `Docs/<topic>/dev-flow-graph.json` authoritative and generates a Markdown view; Loop uses the separate `Docs/<topic>/loop/loop-graph.json`.
+- Raw events and temporary evidence stay under `.dev-flow/runtime/<run-id>/`.
+- Loop and Master remain isolated and exchange only a structured phase handoff and acceptance/phase-eval result; Master persists the accepted-handoff receipt that admits result creation.
+
+The kernel preserves OpenSpec/opsx, user gates, independent checkers, Git permissions, and side-effect boundaries. AJV is its only runtime dependency; the package includes `lib/graph/**` and `schemas/**`. See [Graph Control Kernel](docs/graph-control-kernel.md) for authority, commands, result handling, persistence, compatibility, Skill quality checks, and limitations.
+
 ## Why this exists
 
 Most coding-agent failures are workflow failures:
@@ -260,7 +272,7 @@ Doctor commands also check `/dev-flow-scheduler`, approved automation boundaries
 ## Safety model
 
 - User confirmation is required before starting or refreshing OpenSpec/opsx artifacts when clarification is incomplete.
-- Gate approvals and required signals are recorded in `dev-flow-state.md`; chat memory is not enough evidence for governed completion.
+- Gate/control persistence is mode-specific: Legacy writes `dev-flow-state.md`; Shadow writes its approved Markdown source and requires an explicit new one-way snapshot; Graph writes control facts only through the Graph CLI/API and treats Markdown as evidence/generated views. Chat memory is never completion evidence.
 - All implementation work uses OpenSpec/opsx artifacts as the implementation baseline; if OpenSpec/opsx is unavailable, the workflow stops for user direction instead of silently doing chat-only or ad hoc planning.
 - Phase 2 Gate shows the proposed execution actor before implementation starts; direct concurrent writers and worktree creation require explicit approval.
 - Phase 3 implementation tasks are dispatched to sub-agents only; the main agent coordinates and does not directly edit code, test, or configuration files.

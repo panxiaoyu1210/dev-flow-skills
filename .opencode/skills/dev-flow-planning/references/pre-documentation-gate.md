@@ -2,7 +2,9 @@
 
 ## Planning State Ledger
 
-From `documentation_start_approved` onward, maintain `Docs/<topic>/dev-flow-state.md` or `docs/<topic>/dev-flow-state.md` beside the dev-flow planning state and linked OpenSpec/opsx change. If an existing legacy flat artifact set is reused, place the state file beside those artifacts and record that legacy location in the file.
+Apply the selected authority mode before writing control facts: Legacy keeps this ledger authoritative; Shadow requires its explicit fenced `dev-flow-graph` projection and creates a read-only snapshot; Graph stores machine state in `Docs/<topic>/dev-flow-graph.json` through the CLI/API and keeps this ledger as prose/evidence index. Generated Graph views are never parsed back into Graph state.
+
+From `documentation_start_approved` onward, Legacy/Shadow maintain `Docs/<topic>/dev-flow-state.md` or `docs/<topic>/dev-flow-state.md` as their approved source. Graph mode persists the control facts through the Graph CLI/API and emits that Markdown only as an evidence view. If an existing Legacy flat artifact set is reused, place the state file beside those artifacts and record that location in the file.
 
 The state ledger must include:
 
@@ -28,7 +30,7 @@ Required behavior:
 1. Summarize the current understanding of the request in Chinese.
 2. Ask structured clarification questions for information that would materially affect requirements, design, tests, technology choices, delivery risk, or acceptance.
 3. Separate questions into **blocking** and **non-blocking**.
-4. Do not draft artifacts while blocking questions remain unanswered. If a blocking question receives no answer after 2 reminder prompts within the same session, offer the user three options: (a) provide the missing information now, (b) accept the uncertainty as a known risk and proceed with a documented assumption, or (c) pause the flow. Do not silently proceed or loop indefinitely. If the user selects pause: write a `gate_paused` entry to `dev-flow-state.md` with fields: `gate: pre-artifact`, `paused_at: <timestamp>`, `blocking_questions: [list]`, `resume_condition: user provides answers`. This ensures context recovery can distinguish a paused gate from one that was never entered.
+4. Do not draft artifacts while blocking questions remain unanswered. If a blocking question receives no answer after 2 reminder prompts within the same session, offer the user three options: (a) provide the missing information now, (b) accept the uncertainty as a known risk and proceed with a documented assumption, or (c) pause the flow. Do not silently proceed or loop indefinitely. If the user selects pause, persist `gate_paused` through the active authority with gate, time, blocking questions, and resume condition; then refresh the mode-appropriate evidence view. This ensures recovery can distinguish a paused gate from one never entered.
 5. For non-blocking unknowns, either ask the user to answer them now or explicitly ask whether they accept recording them as assumptions/open issues.
 6. Ask for explicit approval to start drafting or refreshing OpenSpec/opsx artifacts after the clarification state is resolved.
 
@@ -82,4 +84,4 @@ Before drafting stack-sensitive OpenSpec/opsx requirement, design/spec, or task 
 
 ### Required Signal
 
-Emit and persist `documentation_start_approved` with: summary of understood scope, answered blocking questions, accepted assumptions/open issues, technology-stack decision status, review mode, explicit approval to start drafting or refreshing OpenSpec/opsx artifacts, and the chosen `dev-flow-state.md` path.
+Emit and persist `documentation_start_approved` through the active authority with: summary of understood scope, answered blocking questions, accepted assumptions/open issues, technology-stack decision status, review mode, explicit approval to start drafting or refreshing OpenSpec/opsx artifacts, and the chosen control-state reference.

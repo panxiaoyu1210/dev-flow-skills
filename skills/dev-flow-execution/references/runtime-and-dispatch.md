@@ -33,18 +33,18 @@ External helper skills may be used when available, but dev-flow must remain exec
 
 Use task batches, dependency order, agent cap, and the `git_safe` writer limit to decide whether tasks can run in parallel. If direct parallel writes are proposed, ask for explicit approval and recommend worktree isolation without forcing it. Without approval, use serial subagent execution, shared-worktree patch mode, or main-agent serial execution. If the user requests main-agent-only serial work at Phase 2 Gate, follow that override.
 
-If subagent dispatch is unavailable in the current platform, continue with main-agent serial execution using the same task/test contract and record the fallback in `progress.md` and the final delivery report.
+If subagent dispatch is unavailable in the current platform, continue with main-agent serial execution using the same task/test contract, persist the fallback through the active authority, and include it in the mode-appropriate evidence view and final delivery report.
 
 ## Runtime Orchestration State
 
-During Phase 3, maintain an in-memory Runtime Orchestration State derived from:
+When a valid Master Graph exists, it is the machine source for modeled eligibility, dependency, gate, evidence, Git, permission, and failure state. Rebuild runtime state with `dev-flow graph check`, `next`, and task-scoped `context`; use Markdown for Legacy/Shadow authority or Graph-mode human evidence only.
 
-1. `task-orchestration.md`
-2. `test-plan.md`
-3. `dev-flow-state.md`
-4. `progress.md`
-5. actual task results
-6. actual Git / filesystem state
+During Phase 3, maintain an in-memory Runtime Orchestration State reconstructed in this order:
+
+1. actual Git/filesystem/task results
+2. active control state: Legacy reads `dev-flow-state.md`, `task-orchestration.md`, and `progress.md`; Shadow reads the approved fenced projection and verifies its snapshot; Graph runs `dev-flow graph check`, `next`, and task-scoped `context`, treating plan/progress Markdown views as non-input evidence and regenerating stale, tampered, or conflicting copies
+3. OpenSpec/opsx, `test-plan.md`, and executable checks as evidence or change inputs
+4. chat memory only as a non-authoritative hint
 
 Track at least:
 
@@ -60,7 +60,7 @@ Track at least:
 - fallback mode, if any
 - last known artifact revision or update summary
 
-`task-orchestration.md` is the canonical persisted plan, but Phase 3 dispatch is driven by Runtime Orchestration State. After any artifact change, rebuild or reconcile runtime state before dispatching more work. Never continue from a stale in-memory task list.
+Authority is local to the selected mode: Legacy persists the human plan in `task-orchestration.md`; Shadow persists the approved fenced Markdown projection and derives a read-only Graph snapshot; Graph persists modeled dispatch facts through the Master Graph CLI/API and keeps `task-orchestration.md` only as an OpenSpec/evidence view. Phase 3 dispatch is driven by reconstructed Runtime Orchestration State, never a stale in-memory task list.
 
 ## Run-to-Completion Loop
 
@@ -74,9 +74,10 @@ Loop:
 4. Collect every final signal and verify required done signals.
 5. If shared-worktree patch mode is active, apply settled patch outputs serially in the main working tree.
 6. Run per-task and batch checks from the Executable Test Matrix.
-7. Update `progress.md`, affected orchestration/test artifacts, and Runtime Orchestration State.
-8. If the batch passes, immediately advance to the next batch/sub-wave without asking.
-9. After all batches pass, invoke `dev-flow-acceptance`.
+7. Persist control progress through the active authority, update affected OpenSpec/test artifacts and Runtime Orchestration State, then refresh the evidence view.
+8. Re-run Graph `check`/`next` after material changes and record permitted task/gate transitions only after their evidence succeeds.
+9. If the batch passes, immediately advance to the next batch/sub-wave without asking.
+10. After all batches pass, invoke `dev-flow-acceptance`.
 
 Do not stop after a task, batch, progress update, sub-agent success, fallback selection, patch-ready output, or automatic replan if execution can safely continue.
 

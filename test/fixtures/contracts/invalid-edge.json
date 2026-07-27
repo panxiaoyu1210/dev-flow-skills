@@ -1,0 +1,7 @@
+{
+  "id": "edge.contract",
+  "type": "unknown_relation",
+  "from": "task.first",
+  "to": "task.second",
+  "relationHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}

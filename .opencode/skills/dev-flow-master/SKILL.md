@@ -1,78 +1,42 @@
 ---
 name: dev-flow-master
-description: Use as the primary entrypoint for dev-flow development requests, including new features, debugging, UI/UX work, review, requirement changes, progress recovery, governed routing, planning gates, execution coordination, Git safety boundaries, and final acceptance decisions.
+description: Use as the primary entrypoint for dev-flow development requests, including features, debugging, UI/UX, review, requirement changes, recovery, governed routing, phase gates, execution coordination, Git boundaries, and acceptance.
 ---
 
 # dev-flow-master
 
-Global dispatcher for dev-flow. Own entry, route selection, complexity, phase gates, signal checks, recovery routing, and final authorization.
+Dispatch governed dev-flow work. Master owns route and gate decisions; focused skills own their stages. It coordinates implementation but does not implement, perform Git side effects, or replace OpenSpec/opsx.
 
-## Boundary
+All user-facing replies and persisted Markdown artifacts are written in Chinese.
 
-- dev-flow-master is the primary entry point for all governed and lightweight dev-flow requests.
-- Owns: complexity routing, phase gate enforcement, signal ledger maintenance, cross-skill orchestration, and delivery reporting.
-- Does NOT: implement code changes, manage Git worktrees, write OpenSpec/opsx artifacts, or execute tasks directly.
+## Machine Authority
 
-## Language Policy
+The versioned contracts in `schemas/v1/` and the `dev-flow graph` CLI are the machine-rule source of truth. This Skill retains invocation, ordered action, completion criteria, and context pointers; it does not restate graph fields, state vocabularies, or transition tables.
 
-All user-facing replies and all generated artifact documents (requirements, design, specs, CLI specs, test plans, delivery reports, and other persisted Markdown files) in dev-flow must be written in Chinese.
+Graph support is optional per project. Legacy keeps Markdown authoritative. Shadow is explicit opt-in through a fenced `dev-flow-graph` projection and derives a read-only snapshot. Graph makes the Graph authoritative and Markdown a generated view. Read `references/graph-control.md` before selecting a mode, querying routing/readiness, changing graph state, or accepting a Loop phase handoff.
 
-## Core Contract
+## Steps
 
-1. Load dev-flow-intent before routing every new request.
-2. Enforce OpenSpec Baseline Gate and Phase 2 gates without bypass unless the request is a loop-authorized phase handoff with a confirmed loop baseline and envelope.
-3. Never emit routing_decided without a complete intent_decided signal.
-4. Never advance to the next stage without the required gating signal for the current stage.
+1. **Recover authority and evidence.** Inspect actual Git/filesystem state and persisted OpenSpec/dev-flow artifacts. If a Graph exists, run `dev-flow graph check --graph <path> --json`, then `next` and targeted `context`; otherwise continue the Legacy Markdown path.
+   **Complete when:** the active authority mode, state path, current blockers, and evidence revision are known without relying on chat memory.
 
-## Load First
+2. **Classify and route.** Load `dev-flow-intent` for every new or ambiguous entry, check existing change/spec context, classify complexity, and emit persisted `routing_decided`. A valid loop-authorized phase handoff enters planning with its confirmed loop baseline and envelope instead of rebuilding the global baseline.
+   **Complete when:** one owner, one implementation path, required protocols, risks, and the next gate are explicit and persisted.
 
-- Load `dev-flow-intent` for every new entry request before complexity classification, unless this is an explicit continuation inside an unambiguous active phase. A continuation qualifies as "unambiguous" only when ALL of the following are true: (1) `dev-flow-state.md` exists and records an active phase signal dated within the current session, (2) the user message contains no new requirement description, scope change, or bug description, AND (3) the existing `intent_decided` signal in `dev-flow-state.md` still accurately describes the current work. If ANY condition fails, re-invoke `dev-flow-intent` before proceeding.
-- Before stage-specific work, load the owning focused skill: debugging, UI/UX, review, planning, execution, Git, or acceptance.
-- Master emits `routing_decided`; other skills may recommend but must not finalize the route.
+3. **Drive planning gates.** Route implementation work through OpenSpec/opsx; use `dev-flow-planning` for medium/heavy work and `dev-flow-git` before Phase 2. In Graph mode, use `next`/`context` for eligibility and `transition` only after the owning evidence and required user/checker approval exist.
+   **Complete when:** OpenSpec Baseline and Phase 2 are either verifiably passed or have a machine-readable blocker and recovery owner.
 
-## Route Contract
+4. **Coordinate execution.** After Phase 2, load `dev-flow-execution` and continue to settlement. On requirement, artifact, file, or task changes, preview `dev-flow graph impact`; apply typed stale propagation only in Graph mode. Treat `unknown_impact` as conservative replanning, never as no impact.
+   **Complete when:** all in-scope tasks have final reviewed outcomes, evidence summaries, and permitted Git integration states.
 
-1. Check for existing OpenSpec/change/spec context.
-2. Obtain `intent_decided`.
-3. Detect loop-authorized phase mode by verifying all five conditions in `references/routing-and-complexity.md §Loop-Authorized Phase Mode`; do not enter this mode on a subset of those conditions.
-4. Classify implementation work as lightweight, medium, or heavyweight.
-5. Route all implementation work to persisted OpenSpec/opsx artifacts, normally `/opsx:ff <change>`, `/opsx:apply <change>`, and `/opsx:verify <change>`.
-6. Route medium/heavy work to `dev-flow-planning` for OpenSpec baseline refinement, independent checker review, DAG/test matrix, and Git safety. Keep formal implementation evidence in OpenSpec/opsx artifacts. In loop-authorized phase mode, planning consumes the confirmed loop baseline and writes phase-level OpenSpec/opsx plus phase task orchestration instead of recreating the full loop baseline.
-7. Route review, debugging, UI/UX, status recovery, and questions to the focused owner while preserving dev-flow gates when implementation follows.
+5. **Authorize completion.** Load `dev-flow-acceptance`, reconcile fresh tests/evidence with the current authority, and query Graph readiness when present. A gate or completion transition follows evidence; it never substitutes for evidence.
+   **Complete when:** `acceptance_ready` supports `ready-to-report`, or the result is explicitly `not-ready`/`ready-for-review` with owner, reason, and next action.
 
-Read `references/routing-and-complexity.md` when selecting owners, resolving tie-breakers, classifying complexity, or applying the lightweight opsx/OpenSpec contract.
+## Context Pointers
 
-## Signals And Gates
+- `references/routing-and-complexity.md`: owner selection, complexity, OpenSpec/opsx, and loop-authorized entry.
+- `references/state-and-gates.md`: persisted signals, approvals, ownership, and completion evidence.
+- `references/flow-and-recovery.md`: stage order, recovery, continuation, and hard stops.
+- `references/graph-control.md`: authority modes, Graph command sequence, conservative impact, transitions, and handoff boundary.
 
-Persisted evidence is mandatory. Chat memory never satisfies a governed signal or approval. Critical signals include `intent_decided`, `routing_decided`, `documentation_start_approved`, `openspec_artifact_ready`, `task_orchestration_ready`, `git_safe`, `execution_actor_decided`, `opsx_apply_complete`, `opsx_verify_complete`, `execution_settled`, and `acceptance_ready`.
-
-Read `references/state-and-gates.md` before declaring any stage ready, presenting OpenSpec Baseline/Phase 2 gates, accepting lightweight work, or reporting `ready-to-report`.
-
-## Stage Flow
-
-OpenSpec Baseline Gate and Phase 2 require explicit user approval. After Phase 2, execution runs to completion unless a documented hard-stop applies. Focused route owners may execute or verify work only inside the opsx/OpenSpec artifact workflow, never instead of it.
-
-In loop-authorized phase mode, the loop's confirmed baseline and envelope are the upstream approval. Do not ask the user to retype `/dev-flow` or reconfirm the same global requirements; ask only when the phase changes the baseline, side-effect boundary, Git mode, or acceptance criteria.
-
-Any score, gate pass/fail, phase_eval, or readiness judgment that affects continuation must be checked by an independent checker subagent using raw artifacts, not the main agent's conclusion.
-
-Read `references/flow-and-recovery.md` for stage order, continue-by-default behavior, progress queries, context recovery, and guardrails.
-
-## References
-
-- `references/routing-and-complexity.md`: owner selection, tie-breakers, complexity classification, lightweight opsx/OpenSpec contract.
-- `references/state-and-gates.md`: signal schemas, gate rules, stage ownership matrix, phase gates, and completion gate.
-- `references/flow-and-recovery.md`: stage order, continue-by-default behavior, progress queries, context recovery, and guardrails.
-
-## Required Signal
-
-Emits `routing_decided` at the start of every governed or lightweight flow. Full YAML schema is in `references/state-and-gates.md` § Signal Schemas.
-
-## Hard Rules
-
-- Do not force the old four-doc path; every implementation path uses OpenSpec/opsx artifacts as the documentation baseline.
-- Do not carry or load loop baseline templates from `dev-flow-master`; loop baseline templates belong only to `dev-flow-loop/assets/baseline-templates/`.
-- Do not regenerate full loop requirements/design/test docs inside a phase-level dev-flow handoff; reference the loop baseline and create only the phase artifacts needed for implementation.
-- Do not let code/config/test/user-visible changes end as chat-only output or a handwritten local note.
-- If opsx/OpenSpec is unavailable, ask the user to initialize/install it or explicitly exit dev-flow; direct changes without artifacts are not a dev-flow delivery path.
-- Do not advance OpenSpec Baseline Gate, Phase 2, execution, Git side effects, or final completion without the required owner skill and persisted evidence.
+OpenSpec/opsx remains the requirements/design body. The Master Graph stores only stable control references and summaries. Loop and Master Graphs remain isolated; Master never changes the Loop Baseline.

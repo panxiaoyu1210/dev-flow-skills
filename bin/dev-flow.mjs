@@ -33,6 +33,15 @@ const coreSkillNames = [
   'dev-flow-scheduler',
   'dev-flow-ui-ux',
 ];
+const graphAwareSkillNames = [
+  'dev-flow-master',
+  'dev-flow-planning',
+  'dev-flow-execution',
+  'dev-flow-git',
+  'dev-flow-acceptance',
+  'dev-flow-loop',
+  'dev-flow-loop-envelope',
+];
 const opsxRequiredPhrases = ['/opsx:ff', '/opsx:apply', '/opsx:verify'];
 const commandFileNames = ['dev-flow.md', 'dev-flow-cr.md', 'dev-flow-loop.md', 'dev-flow-triage.md', 'dev-flow-scheduler.md'];
 const crIndependentPhrase = 'Do not run as an automatic `/dev-flow` stage';
@@ -248,7 +257,7 @@ const governanceSemanticChecks = [
       'confirmed loop baseline',
       'Loop Phase DAG node',
       'dev_flow_phase_handoff',
-      'Do not ask the user to retype `/dev-flow`',
+      'instead of rebuilding the global baseline',
       ...formalArtifactTrackingPhrases,
     ],
   },
@@ -297,7 +306,7 @@ const governanceSemanticChecks = [
       'Per-Task Reviewer Protocol',
       'task_reviewer_verdict',
       'reviewer_blocked',
-      'coordinator only',
+      'The main agent coordinates',
       'All implementation tasks in Phase 3 must be dispatched to sub-agents',
       ...formalArtifactTrackingPhrases,
     ],
@@ -344,7 +353,7 @@ const governanceSemanticChecks = [
       'trace',
       'eval',
       'Do not start `/dev-flow`',
-      'Do not start `/dev-flow-cr`',
+      'Do not start `/dev-flow` or `/dev-flow-cr`',
       'Keep loop state separate from `dev-flow-state.md`',
       'trace_or_eval_evidence',
       'maker-checker',
@@ -360,13 +369,13 @@ const governanceSemanticChecks = [
       'phase-artifacts.md',
       'opsx-index.md',
       'openspec/changes/<change-id>/',
-      'Do not move or copy OpenSpec/opsx originals into the loop artifact directory',
-      'auto-continue within baseline',
+      'OpenSpec/opsx originals remain',
+      'auto-continue only inside the approved envelope',
       'TDD per task via superpowers',
       'quality_threshold: 95',
       'phase_eval',
-      'quality target is 95',
-      'convergence floor is 90',
+      'dev-flow-master/references/state-and-gates.md',
+      'Bounded Convergence Policy',
       'max_checker_evaluations',
       'defaults to 3',
       'material finding',
@@ -379,8 +388,8 @@ const governanceSemanticChecks = [
       'DAG and Envelope Quality Checklist',
       'openspec_artifact_ready.checker_score',
       'task_orchestration_ready.checker_score',
-      'Freezing the initial baseline, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval',
-      'exceeding baseline, budget, retry, stop-condition, or side-effect boundaries requires stopping and asking the user',
+      'Writing the initial baseline, freezing it, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval',
+      'Confirmed phases may auto-continue only inside the approved envelope',
     ],
     forbidden: [...loopTerminologyForbiddenPatterns, ...unboundedConvergencePatterns],
   },
@@ -392,14 +401,14 @@ const governanceSemanticChecks = [
       'budget',
       'stop_conditions',
       'repo_writer_lock',
-      'baseline_authority',
+      'Baseline authority',
       'auto_continue_scope',
       'confirmed_loop_baseline',
       'within_confirmed_baseline',
       'max_phase_repair_rounds',
       'max_checker_evaluations',
       'max_full_loop_passes',
-      'forbidden_side_effects',
+      'Forbidden side effects',
       'schedule_kind',
       'cron_expression',
       'timezone',
@@ -465,8 +474,8 @@ const governanceSemanticChecks = [
       'requirements/design/test coverage',
       'Executable Test Matrix',
       ...formalArtifactTrackingPhrases,
-      'quality target is 95',
-      'convergence floor is 90',
+      'dev-flow-master/references/state-and-gates.md',
+      'Bounded Convergence Policy',
       'max_checker_evaluations',
       'defaults to 3',
       'material finding',
@@ -490,8 +499,8 @@ const governanceSemanticChecks = [
       'integration points, external dependency failures, and offline/degraded modes',
       'system-level checks',
       'checker_score',
-      'quality target is 95',
-      'convergence floor is 90',
+      'dev-flow-master/references/state-and-gates.md',
+      'Bounded Convergence Policy',
       'max_checker_evaluations',
       'defaults to 3',
       'material finding',
@@ -506,6 +515,12 @@ const command = args[0] ?? 'help';
 const flags = parseFlags(args.slice(1));
 
 async function main() {
+  if (command === 'graph') {
+    const { runGraphCli } = await import('../lib/graph/cli.mjs');
+    process.exitCode = await runGraphCli(args.slice(1));
+    return;
+  }
+
   if (command === 'install' || command === 'update') {
     await installOrUpdate(command);
     return;
@@ -701,6 +716,7 @@ async function doctor() {
   }
 
   ok = checkInstalledOpenCodeSemantics(target) && ok;
+  ok = await checkGraphKernelSurface(target) && ok;
 
   const manifest = readManifest(target);
   if (manifest) {
@@ -1357,6 +1373,121 @@ function checkSourceSemantics() {
   return ok;
 }
 
+async function checkGraphKernelSurface(installedTarget = sourceRoot) {
+  let graphApi;
+  let schemaOk = false;
+  let exportsOk = false;
+  let helpOk = false;
+  let packageOk = false;
+  let skillsOk = false;
+  let docsOk = false;
+
+  try {
+    graphApi = await import('../lib/graph/index.mjs');
+    const validators = graphApi.compileSchemas();
+    schemaOk = Object.values(graphApi.SCHEMA_IDS)
+      .every((schemaId) => typeof validators.getSchema(schemaId) === 'function');
+
+    const requiredExports = [
+      'checkGraph',
+      'computeImpact',
+      'applyImpact',
+      'queryNext',
+      'buildMinimalContext',
+      'planTransition',
+      'commitTransition',
+      'createPhaseHandoff',
+      'acceptPhaseHandoff',
+      'createAcceptanceResult',
+      'consumePhaseResult',
+      'createPhaseEvaluationResult',
+      'runGraphCli',
+      'lintSkillAuthoring',
+      'lintAuthorityLanguage',
+      'lintGraphProtocolAuthoring',
+    ];
+    exportsOk = requiredExports.every((name) => typeof graphApi[name] === 'function');
+
+    const help = graphApi.graphHelp();
+    helpOk = ['init', 'check', 'impact', 'next', 'context', 'transition']
+      .every((name) => help.includes(`dev-flow graph ${name}`))
+      && help.includes('Exit codes: 0 success, 1 I/O/internal, 2 validation/syntax, 3 workflow blocked.');
+  } catch {
+    schemaOk = false;
+    exportsOk = false;
+    helpOk = false;
+  }
+
+  const packaged = new Set(packageJson.files ?? []);
+  packageOk = packaged.has('lib/graph')
+    && packaged.has('schemas')
+    && existsSync(path.join(packageRoot, 'lib', 'graph', 'index.mjs'))
+    && existsSync(path.join(packageRoot, 'schemas', 'v1', 'graph.schema.json'));
+
+  const skillRoots = [codexSkillsRoot, path.join(installedTarget, 'skills')];
+  skillsOk = Boolean(graphApi) && skillRoots.every((skillsRoot) => graphAwareSkillNames.every((skillName) => {
+    const skillPath = path.join(skillsRoot, skillName, 'SKILL.md');
+    if (!existsSync(skillPath)) return false;
+    const content = readFileSync(skillPath, 'utf8');
+    return countLines(content) <= maxCoreSkillLines
+      && graphApi.lintSkillAuthoring(content, { filePath: skillPath }).valid
+      && content.includes('dev-flow graph')
+      && content.includes('schemas/v1/')
+      && /references\/[^\s`)]+\.md/.test(content)
+      && !/```(?:json|yaml)/i.test(content);
+  }));
+
+  if (skillsOk) {
+    const authorityFiles = [
+      ...graphAwareSkillNames.flatMap((skillName) => collectFiles(path.join(codexSkillsRoot, skillName))
+        .filter((filePath) => filePath.endsWith('.md'))),
+      ...graphAwareSkillNames.flatMap((skillName) => collectFiles(path.join(installedTarget, 'skills', skillName))
+        .filter((filePath) => filePath.endsWith('.md'))),
+      path.join(codexCommandsSourceRoot, 'dev-flow.md'),
+      path.join(codexCommandsSourceRoot, 'dev-flow-loop.md'),
+      path.join(installedTarget, 'command', 'dev-flow.md'),
+      path.join(installedTarget, 'command', 'dev-flow-loop.md'),
+      path.join(packageRoot, 'docs', 'graph-control-kernel.md'),
+      path.join(packageRoot, 'docs', 'workflow-overview.md'),
+      path.join(packageRoot, 'README.md'),
+      path.join(packageRoot, 'README.zh-CN.md'),
+    ];
+    skillsOk = authorityFiles.every((filePath) => graphApi.lintAuthorityLanguage(
+      readFileSync(filePath, 'utf8'),
+      { filePath: path.relative(packageRoot, filePath) },
+    ).valid);
+  }
+
+  const graphDocsPath = path.join(packageRoot, 'docs', 'graph-control-kernel.md');
+  if (existsSync(graphDocsPath)) {
+    const content = readFileSync(graphDocsPath, 'utf8');
+    docsOk = graphApi?.lintGraphProtocolAuthoring(content).valid === true
+      && [
+      'Legacy',
+      'Shadow',
+      'Graph',
+      'Docs/<topic>/dev-flow-graph.json',
+      'Docs/<topic>/loop/loop-graph.json',
+      '.dev-flow/runtime/<run-id>/',
+      'Skill Authoring Quality Checklist',
+      'unknown_impact',
+      ].every((phrase) => content.includes(phrase));
+  }
+
+  const checks = [
+    ['Graph schemas compile', schemaOk],
+    ['Graph kernel exports', exportsOk],
+    ['Graph CLI help contract', helpOk],
+    ['Graph package surface', packageOk],
+    ['Graph Skill authoring contract', skillsOk],
+    ['Graph documentation contract', docsOk],
+  ];
+  for (const [label, passed] of checks) {
+    console.log(`${passed ? '✓' : '✗'} ${label}`);
+  }
+  return checks.every(([, passed]) => passed);
+}
+
 function checkLoopBaselineTemplatePlacement() {
   let ok = true;
   const sourceLoopTemplatesPath = path.join(codexSkillsRoot, 'dev-flow-loop', 'assets', 'baseline-templates');
@@ -1784,6 +1915,12 @@ Usage:
   dev-flow doctor-claude [--target PATH] [--commands-target PATH]
   dev-flow uninstall [--global|--target PATH] [--dry-run]
   dev-flow version
+  dev-flow graph init --graph PATH --type master|loop --mode legacy|shadow|graph [--topic REF] [--markdown PATH ...] [--view PATH] [--json]
+  dev-flow graph check --graph PATH [--source-root PATH] [--runtime PATH] [--run-id ID] [--json]
+  dev-flow graph impact --graph PATH --kind requirement|artifact|file|task --source VALUE [--apply] [--source-root PATH] [--runtime PATH] [--run-id ID] [--view PATH] [--json]
+  dev-flow graph next --graph PATH [--source-root PATH] [--runtime PATH] [--run-id ID] [--json]
+  dev-flow graph context --graph PATH [--node ID] [--source-root PATH] [--runtime PATH] [--run-id ID] [--json]
+  dev-flow graph transition --graph PATH --node ID --to STATUS --actor ID [--runtime PATH] [--run-id ID] [--view PATH] [--event-id ID] [--occurred-at UTC] [--capability-exception REASON] [--json]
 
 Installed slash commands:
   /dev-flow            Governed development workflow

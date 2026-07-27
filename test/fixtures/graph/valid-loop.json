@@ -1,0 +1,98 @@
+{
+  "$schema": "https://dev-flow.dev/schemas/v1/loop-graph.schema.json",
+  "schemaVersion": "1.0.0",
+  "graphKind": "loop",
+  "id": "loop.checkout",
+  "topicRef": "Docs/checkout/loop",
+  "authority": {
+    "mode": "shadow",
+    "sourceOfTruth": "markdown",
+    "syncDirection": "markdown_to_graph",
+    "graphMutationAllowed": false,
+    "markdownViewReadableAsAuthority": true,
+    "markdownSources": [
+      {
+        "ref": "Docs/checkout/loop/loop-state.md",
+        "hash": "7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    ]
+  },
+  "revision": 2,
+  "acyclicEdgeTypes": ["depends_on", "control"],
+  "nodes": [
+    {
+      "id": "goal.checkout",
+      "type": "Goal",
+      "status": "active",
+      "ref": "Docs/checkout/requirements.md#goal",
+      "hash": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "id": "baseline.checkout",
+      "type": "Baseline",
+      "status": "passed",
+      "ref": "Docs/checkout/loop/loop-state.md#baseline",
+      "hash": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "id": "phase.checkout",
+      "type": "Phase",
+      "status": "ready",
+      "ref": "Docs/checkout/loop/loop-phase-dag.md#phase-1",
+      "hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "owner": "master",
+      "relatedNodeIds": ["eval.checkout"]
+    },
+    {
+      "id": "envelope.checkout",
+      "type": "Envelope",
+      "status": "passed",
+      "ref": "Docs/checkout/loop/loop-envelope.md",
+      "hash": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "id": "budget.checkout",
+      "type": "Budget",
+      "status": "active",
+      "ref": "Docs/checkout/loop/loop-envelope.md#budget",
+      "hash": "5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    {
+      "id": "eval.checkout",
+      "type": "Eval",
+      "status": "passed",
+      "ref": "Docs/checkout/loop/loop-state.md#phase-eval",
+      "hash": "6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge.goal-baseline",
+      "type": "control",
+      "from": "goal.checkout",
+      "to": "baseline.checkout"
+    },
+    {
+      "id": "edge.baseline-phase",
+      "type": "control",
+      "from": "baseline.checkout",
+      "to": "phase.checkout"
+    },
+    {
+      "id": "edge.envelope-phase",
+      "type": "requires",
+      "from": "phase.checkout",
+      "to": "envelope.checkout"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "permission.loop-evaluate",
+      "actorId": "loop-controller",
+      "action": "evaluate",
+      "resourceRef": "phase.checkout",
+      "effect": "allow"
+    }
+  ],
+  "eventRefs": []
+}

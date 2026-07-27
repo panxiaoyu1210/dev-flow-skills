@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/phase-result.schema.json",
+  "title": "Dev Flow acceptance or phase evaluation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "resultId", "resultType", "direction", "handoffId", "phaseId",
+    "masterGraph", "loopGraph", "outcome", "handoffHash", "requirementIds", "evidenceSummaries", "evaluationHash", "issuedAt"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "resultId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "resultType": {"enum": ["acceptance", "phase_eval"]},
+    "direction": {"enum": ["master_to_loop", "loop_internal"]},
+    "handoffId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "phaseId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "masterGraph": {"$ref": "#/$defs/masterGraphRef"},
+    "loopGraph": {"$ref": "#/$defs/loopGraphRef"},
+    "outcome": {"enum": ["passed", "blocked", "failed"]},
+    "handoffHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+    "requirementIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    },
+    "evidenceSummaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidenceId", "subjectId", "summary", "hash"],
+        "properties": {
+          "evidenceId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+          "subjectId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+          "summary": {"type": "string", "minLength": 1},
+          "hash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"}
+        }
+      }
+    },
+    "evaluationHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+    "issuedAt": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/timestamp"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"resultType": {"const": "acceptance"}}, "required": ["resultType"]},
+      "then": {"properties": {"direction": {"const": "master_to_loop"}}},
+      "else": {"properties": {"direction": {"const": "loop_internal"}}}
+    }
+  ],
+  "$defs": {
+    "baseGraphRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "hash", "schemaVersion"],
+      "properties": {
+        "kind": {"enum": ["loop", "master"]},
+        "id": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+        "hash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+        "schemaVersion": {"const": "1.0.0"}
+      }
+    },
+    "masterGraphRef": {
+      "allOf": [
+        {"$ref": "#/$defs/baseGraphRef"},
+        {"type": "object", "properties": {"kind": {"const": "master"}}}
+      ]
+    },
+    "loopGraphRef": {
+      "allOf": [
+        {"$ref": "#/$defs/baseGraphRef"},
+        {"type": "object", "properties": {"kind": {"const": "loop"}}}
+      ]
+    }
+  }
+}

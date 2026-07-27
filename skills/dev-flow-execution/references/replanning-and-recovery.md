@@ -11,6 +11,10 @@
 
 ## Dynamic Replanning During Execution
 
+Before classifying a material change, run `dev-flow graph impact` for the affected requirement, artifact, file, or task when Graph state exists. Graph mode applies the typed stale closure before rebuilding the task DAG. Shadow reports drift and remains read-only. `unknown_impact` routes conservatively to Master or Loop Baseline review and never means no impact.
+
+Control persistence below always follows the active mode: Legacy writes the Markdown ledgers; Shadow writes its approved Markdown source and then creates a new explicit one-way snapshot target; Graph writes only through the Graph CLI/API and regenerates Markdown evidence/views afterward. Never merge or write a Markdown view back into Graph state.
+
 Implementation may reveal missing subtasks, wrong boundaries, hidden dependencies, extra tests, or safer ordering. Treat these as orchestration maintenance, not a reason to stop, when inside the approved baseline.
 
 Automatic replanning examples:
@@ -25,17 +29,18 @@ Automatic replanning examples:
 
 Required artifact updates:
 
-1. Update `task-orchestration.md`: task IDs, dependencies, batches, acceptance criteria, diagnostics, tests, quality gates, done signals.
+1. Persist task IDs, dependencies, batches, acceptance criteria, diagnostics, tests, quality gates, and done signals by authority mode: Legacy updates `task-orchestration.md`; Shadow updates its approved fenced Markdown projection source and creates a fresh snapshot; Graph updates modeled facts through the Master Graph CLI/API before refreshing `task-orchestration.md` as a plan/evidence view.
 2. Update the OpenSpec/opsx test artifacts, or the loop baseline `test-plan.md` when present, when tests, fixtures, regression scope, or batch verification change.
-3. Update `dev-flow-state.md` and `progress.md`: replan decision, old/new task mapping, affected batches, current execution pointer, gate impact, and accepted risks.
+3. Persist the replan decision, old/new task mapping, affected batches, execution pointer, gate impact, and accepted risks through the active authority; refresh the mode-appropriate human evidence/view.
 4. Update OpenSpec/opsx design/spec artifacts when design details change without altering requirement baseline.
 5. Rebuild/reconcile Runtime Orchestration State.
 6. Recompute DAG and confirm no cycles.
 7. Continue with next eligible batch/sub-wave.
+8. In Graph mode, validate the new revision and use `next`/targeted `context` before dispatching again.
 
 Runtime synchronization after any replan:
 
-1. Write artifact changes first.
+1. Write OpenSpec/prose changes first, then persist control changes through the active authority rule above.
 2. Re-read/reconstruct DAG from `task-orchestration.md`.
 3. Rebuild Executable Test Matrix from orchestration and persisted OpenSpec/opsx test artifacts, or the loop baseline test plan when present.
 4. Recompute batches/sub-waves.
@@ -48,7 +53,7 @@ Runtime synchronization after any replan:
 6. Update current execution pointer.
 7. Confirm next dispatch uses updated runtime state, not stale memory.
 
-If runtime and persisted artifacts disagree, do not dispatch from memory. Reconcile using: actual Git/filesystem/task results -> `dev-flow-state.md` -> OpenSpec/opsx artifacts -> `task-orchestration.md` -> loop baseline test plan when present -> `progress.md` -> chat memory. Rewrite `dev-flow-state.md` and `progress.md`, then continue automatically.
+If runtime and persisted artifacts disagree, do not dispatch from memory. Graph recovery is `actual Git/filesystem/task results -> Graph -> OpenSpec/evidence views -> chat hint`; write reconciled control facts only through the Graph CLI/API. Shadow recovery is `actual state -> authoritative Markdown projection source -> read-only snapshot check`; refresh only by a new explicit one-way snapshot. Legacy recovery is `actual state -> dev-flow-state.md -> OpenSpec/opsx -> task-orchestration.md -> loop test plan -> progress.md -> chat hint`.
 
 Do not ask the user before replanning when all are true:
 
@@ -65,11 +70,11 @@ Completed work classification:
 - `superseded`: keep history, do not count as satisfying new task
 - `must rollback`: hard-stop if rollback is destructive or needs approval; otherwise follow `dev-flow-git` safe rollback rules. A rollback is considered destructive if it would remove commits that are already pushed to a shared branch, delete files not tracked in the task's original scope, or modify more than 3 files outside the task's declared file_overlap list. The main agent (not dev-flow-git) emits the hard-stop notification and presents options to the user. After user confirmation, invoke dev-flow-git to execute the safe rollback.
 
-Every automatic adjustment must appear in `dev-flow-state.md`, `progress.md`, and final acceptance report with a short reason. Replanning must not become silent scope creep.
+Every automatic adjustment must appear in the active control authority and final acceptance evidence with a short reason; Legacy/Shadow also update their Markdown source, while Graph regenerates its views. Replanning must not become silent scope creep.
 
 ### Automatic Replan Counter
 
-Initialize `replan_count = 0` in `dev-flow-state.md` and `progress.md` at Phase 3 start. Increment by 1 after each automatic inside-baseline replan. Maximum automatic replans: **3**.
+Initialize `replan_count = 0` in the active control authority at Phase 3 start and expose it in the mode-appropriate evidence view. Increment it after each automatic inside-baseline replan. Maximum automatic replans: **3**.
 
 On reaching the cap (replan_count = 3), emit a **hard-stop**. Present the user with the full replan chain:
 
@@ -115,7 +120,7 @@ Mandatory handling:
    - OpenSpec/opsx design/spec artifacts when design assumptions, API/protocol/data/security/UI/technology choices change
    - OpenSpec/opsx test artifacts, or loop baseline test plan when present, when verification scope or acceptance checks change
    - `task-orchestration.md` when task list, dependencies, batches, done signals, or Executable Test Matrix change
-6. Rewrite `dev-flow-state.md` and `progress.md` with the requirement-change summary, affected artifacts, stale tasks, completed-work classification, and next required gate.
+6. Persist the requirement-change summary, affected artifacts, stale tasks, completed-work classification, and next required gate through the active authority; then refresh its human evidence/view.
 7. Re-enter the earliest required gate:
    - OpenSpec Baseline Gate for requirement baseline or acceptance baseline changes
    - Phase 2 Gate for orchestration/Git/test-matrix changes with stable requirement baseline
@@ -134,7 +139,7 @@ When gate re-entry is not required, update artifacts and progress, announce brie
 
 ## Progress File
 
-Update `Docs/<topic>/progress.md` or the canonical legacy path:
+Use `Docs/<topic>/progress.md` or the canonical Legacy path as a human recovery artifact. Legacy/Shadow update their Markdown source; Graph writes the control fact first through the Graph CLI/API and only then regenerates/updates the evidence view:
 
 - when planning state needs recovery before Phase 2, at least as a pointer to `dev-flow-state.md`
 - after Phase 2 Gate is cleared
@@ -142,7 +147,7 @@ Update `Docs/<topic>/progress.md` or the canonical legacy path:
 - after retries, skips, rollbacks, pauses, fallbacks, or replans
 - before resuming after interruption
 
-Progress file is a recovery aid, not sole source of truth. Reconcile conflicts by: actual Git/filesystem/task results -> `dev-flow-state.md` -> OpenSpec/opsx artifacts -> `task-orchestration.md` -> loop baseline test plan when present -> `progress.md` -> chat memory.
+The progress file is never the sole source of control truth. Use the mode-specific recovery orders above; in Graph mode it is a downstream evidence view and cannot overwrite Graph state.
 
 ## Execution Context Recovery
 
@@ -151,21 +156,18 @@ When Phase 3 resumes after interruption, compaction, new session, tool crash, or
 Before dispatching any task, rebuild Runtime Orchestration State from:
 
 1. actual Git/filesystem/task results
-2. `dev-flow-state.md`
-3. OpenSpec/opsx artifacts
-4. `task-orchestration.md`
-5. loop baseline test plan when present
-6. `progress.md`
-7. chat memory only as a last-resort hint
+2. active control state: Legacy reads `dev-flow-state.md`, `task-orchestration.md`, and `progress.md`; Shadow reads the approved fenced Markdown projection and verifies its snapshot; Graph runs `dev-flow graph check`, `next`, and targeted `context`, with generated plan/progress views treated as non-input evidence and regenerated when stale, tampered, or conflicting
+3. OpenSpec/opsx artifacts and the loop baseline test plan, when present, as evidence or change inputs
+4. chat memory only as a last-resort hint
 
 Mandatory recovery checks:
 
-- If `dev-flow-state.md` or `progress.md` records requirement change, `stale-pending`, gate re-entry, failed/blocked task, rollback, skip/defer decision, or pause, resume that recovery path first.
-- If a task is marked done but its changed files/tests/evidence are missing, treat it as not settled and re-verify before advancing.
-- If a task is marked done but task local verification evidence, TDD evidence, required UI/UX evidence, or canonical Git integration state is missing, treat it as not settled for acceptance.
-- If a task is marked running but no task agent is active, classify it as interrupted and either resume the same task context or retry without counting it as a task failure until a final signal exists. After **2 resume attempts** without a final signal, stop retrying: mark the task `final_failed` and record `interrupted_without_resolution` as the failure reason. Do not loop indefinitely on interrupted tasks.
-- If documents changed after Runtime Orchestration State was last built, rebuild DAG, batches, Executable Test Matrix, and current execution pointer.
-- Rewrite `dev-flow-state.md` and `progress.md` after reconciliation and before dispatching more work.
+- If `dev-flow-state.md` or `progress.md` records requirement change, `stale-pending`, gate re-entry, failed/blocked task, rollback, skip/defer decision, or pause, Legacy resumes that ledger path; Shadow resumes only when the approved projection and verified snapshot contain it; Graph resumes only when `dev-flow graph check`, `next`, and targeted `context` select it, never from a plan/progress view. Regenerate any stale, tampered, or conflicting Graph view before reporting recovery.
+- If the active authority marks a task done but its changed files/tests/evidence are missing, treat it as not settled and re-verify before advancing; Graph status comes from `check`, `next`, and targeted `context`, not from a Markdown view.
+- If the active authority marks a task done but task local verification evidence, TDD evidence, required UI/UX evidence, or canonical Git integration state is missing, treat it as not settled for acceptance; Graph status comes from `check`, `next`, and targeted `context`, not from a Markdown view.
+- If the active authority marks a task running but no task agent is active, classify it as interrupted and either resume the same task context or retry without counting it as a task failure until a final signal exists. In Graph mode, record that recovery through a legal Graph transition before `next`; never infer it from a Markdown view. After **2 resume attempts** without a final signal, stop retrying: mark the task `final_failed` and record `interrupted_without_resolution` as the failure reason. Do not loop indefinitely on interrupted tasks.
+- If a source artifact changes after Runtime Orchestration State was last built, preview `dev-flow graph impact` when Graph exists and rebuild DAG, batches, Executable Test Matrix, and the current execution pointer through the active authority. Edits to generated Graph views are ignored as control input and the views are regenerated.
+- Persist reconciled control facts through the active-mode rule above and refresh only its downstream Markdown evidence/view before dispatching more work.
 
 Never dispatch from stale memory after recovery. The first action after recovery must be state reconstruction or explicit gate handling.
 

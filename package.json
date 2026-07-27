@@ -13,6 +13,8 @@
     "commands",
     "skills",
     "bin",
+    "lib/graph",
+    "schemas",
     "scripts",
     "install",
     "docs",
@@ -22,6 +24,9 @@
     "CHANGELOG.md",
     "LICENSE"
   ],
+  "dependencies": {
+    "ajv": "^8.17.1"
+  },
   "scripts": {
     "test": "node --test",
     "doctor": "node bin/dev-flow.mjs doctor --target .",

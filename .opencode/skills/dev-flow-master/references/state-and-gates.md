@@ -15,14 +15,18 @@ Stage skills may perform stage-specific work, but the master is the only compone
 
 ### Canonical State Files
 
-Governed work must maintain persisted state from the first planning gate onward:
+Authority is mode-specific. Legacy keeps the Markdown ledgers below authoritative. Shadow keeps those ledgers authoritative and derives a read-only Graph snapshot that must pass drift checks. Graph mode keeps `Docs/<topic>/dev-flow-graph.json` authoritative; Markdown ledgers and `dev-flow-graph.md` are evidence indexes/views and must not be read back to overwrite Graph state. The versioned schemas and `dev-flow graph` CLI define machine state in Graph/Shadow modes.
 
-- `dev-flow-state.md`: canonical signal and gate ledger for the workflow.
+Governed work must maintain persisted state from the first planning gate onward. In Legacy and Shadow, the control ledgers are:
+
+- `dev-flow-state.md`: authoritative signal and gate ledger for Legacy/Shadow.
 - `progress.md`: execution progress and recovery ledger, created no later than Phase 2 approval and earlier when planning state must survive interruption.
 
-Canonical location is `Docs/<topic>/` or `docs/<topic>/` beside the governed artifact set. If a legacy flat artifact set already exists, keep using that legacy location and record the chosen path in `dev-flow-state.md`.
+Their canonical location is `Docs/<topic>/` or `docs/<topic>/` beside the governed artifact set. If a Legacy flat artifact set already exists, keep using that location and record the chosen path in `dev-flow-state.md`.
 
-`dev-flow-state.md` must record every signal below with: signal name, producer, timestamp or ordering marker, evidence paths, gate status, user approval text when the signal records a gate passage or an authorization event, and stale/repair notes. Chat memory is never sufficient evidence for a governed signal or user approval.
+Every signal below records its name, producer, timestamp or ordering marker, evidence paths, gate status, user approval text when it records a gate passage or authorization event, and stale/repair notes. Legacy persists those fields in `dev-flow-state.md`; Shadow persists them in its approved fenced Markdown projection source and creates a fresh snapshot; Graph persists them through the Master Graph CLI/API, while `dev-flow-state.md` and `progress.md` are evidence/generated views and never write back into Graph state. Chat memory is never sufficient evidence for a governed signal or user approval.
+
+Every later instruction in this reference to record or update a Markdown ledger inherits that rule: it is an authority write in Legacy/Shadow, but a downstream evidence/view update after the Graph CLI/API write in Graph mode.
 
 ### Artifact Tracking Policy
 
@@ -119,9 +123,9 @@ execution_actor_decided:
 
 ### Bounded Convergence Policy
 
-Across planning, loop, phase-eval, acceptance, and completion, the quality target is 95 and the convergence floor is 90. `max_checker_evaluations` is the configurable upper budget for total checker evaluations at one checkpoint and defaults to 3 when no explicit user, project, or approved Loop Envelope value exists. Loop work inherits the approved envelope value; non-loop dev-flow records the effective value in `dev-flow-state.md` before the first checker checkpoint.
+Across planning, loop, phase-eval, acceptance, and completion, the quality target is 95 and the convergence floor is 90. `max_checker_evaluations` is the configurable upper budget for total checker evaluations at one checkpoint and defaults to 3 when no explicit user, project, or approved Loop Envelope value exists. Loop work inherits the approved envelope value. Before its first checker checkpoint, non-loop dev-flow persists the effective value by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing the evidence view.
 
-For non-loop dev-flow, persist the effective policy once and update it only when the user or project configuration changes:
+The non-loop policy payload written through that authority branch is created once and changes only when the user or project configuration changes:
 
 ```yaml
 checker_policy:
@@ -138,11 +142,11 @@ Gate rules:
 
 - Do not enter governed planning without `routing_decided` choosing the governed path.
 - Do not draft or update OpenSpec/opsx baseline artifacts without `documentation_start_approved`.
-- Do not present OpenSpec Baseline Gate as ready without `openspec_artifact_ready` satisfying bounded convergence for medium/heavy work. **Loop-authorized exception:** when all five loop-authorized phase mode conditions are met (see `references/routing-and-complexity.md § Loop-Authorized Phase Mode`), the Execution Envelope Gate approval covers user consent for phases inside the confirmed baseline. Do not re-prompt the user for a separate OpenSpec Baseline Gate approval; record `loop_authorized: true`, the `loop_id`, and the `loop_baseline_ready` + `loop_envelope_ready` signal paths in `dev-flow-state.md`, then proceed.
-- Do not present Phase 2 Gate as ready without `task_orchestration_ready` and `git_safe`. **Loop-authorized exception:** same five conditions as above — do not re-prompt for a separate Phase 2 Gate approval; record the same `loop_authorized` fields in `dev-flow-state.md` and proceed.
+- Do not present OpenSpec Baseline Gate as ready without `openspec_artifact_ready` satisfying bounded convergence for medium/heavy work. **Loop-authorized exception:** when all five loop-authorized phase mode conditions are met (see `references/routing-and-complexity.md § Loop-Authorized Phase Mode`), the Execution Envelope Gate approval covers user consent for phases inside the confirmed baseline. Do not re-prompt the user for a separate OpenSpec Baseline Gate approval; persist `loop_authorized: true`, the `loop_id`, and the `loop_baseline_ready` + `loop_envelope_ready` signal paths by authority mode—Legacy writes `dev-flow-state.md`, Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot, and Graph writes through the Master Graph CLI/API before refreshing the evidence view—then proceed.
+- Do not present Phase 2 Gate as ready without `task_orchestration_ready` and `git_safe`. **Loop-authorized exception:** same five conditions as above — do not re-prompt for a separate Phase 2 Gate approval; persist the same `loop_authorized` fields by authority mode—Legacy writes `dev-flow-state.md`, Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot, and Graph writes through the Master Graph CLI/API before refreshing the evidence view—then proceed.
 - Do not execute code/config/test/user-visible changes until `openspec_artifact_ready` or `lightweight_artifact_ready` records the OpenSpec/opsx change context.
 - Do not accept lightweight work until `opsx_apply_complete` and `opsx_verify_complete` are recorded.
-- Do not enter Phase 3 until Phase 2 Gate has presented the proposed execution actor and recorded `execution_actor_decided`. **Loop-authorized exception:** same five conditions — record `execution_actor_decided` with `loop_authorized: true`, `loop_id`, and the envelope reference.
+- Do not enter Phase 3 until Phase 2 Gate has presented the proposed execution actor and recorded `execution_actor_decided`. **Loop-authorized exception:** same five conditions — persist `execution_actor_decided` with `loop_authorized: true`, `loop_id`, and the envelope reference by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing the evidence view.
 - Do not enter acceptance until execution reports all batches completed, user/gate-accepted as deferred, or replanned under `execution_settled`.
 - Do not report `ready-to-report` without `acceptance_ready`.
 - Do not stage or commit transient runtime evidence; use the `dev-flow-git` staging allowlist, keep canonical formal artifacts tracked, and do not use `git add -A` or `git add .`.
@@ -191,13 +195,13 @@ After `dev-flow-planning` produces or refreshes OpenSpec/opsx baseline artifacts
 - accepted known risks
 - next step: task orchestration
 
-Do not enter task orchestration until the user explicitly approves with “同意”, “开始”, “继续”, “proceed”, “go ahead”, “实施”, or equivalent. **Loop-authorized exception:** when all five loop-authorized phase mode conditions are met (see `references/routing-and-complexity.md § Loop-Authorized Phase Mode`), record `loop_authorized: true`, `loop_id`, and the `loop_baseline_ready` + `loop_envelope_ready` signal paths in `dev-flow-state.md`, then proceed without a separate user prompt.
+Do not enter task orchestration until the user explicitly approves with “同意”, “开始”, “继续”, “proceed”, “go ahead”, “实施”, or equivalent. **Loop-authorized exception:** when all five loop-authorized phase mode conditions are met (see `references/routing-and-complexity.md § Loop-Authorized Phase Mode`), persist `loop_authorized: true`, `loop_id`, and the `loop_baseline_ready` + `loop_envelope_ready` signal paths by authority mode—Legacy writes `dev-flow-state.md`, Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot, and Graph writes through the Master Graph CLI/API before refreshing the evidence view—then proceed without a separate user prompt.
 
-If the user rejects the artifacts at OpenSpec Baseline Gate, enter the Revision Loop in `phase-1-documents.md`. The rejection counts as one revision cycle toward the 3-cycle cap. Record the rejection reason in `dev-flow-state.md` under the `openspec_baseline_gate` entry. If the user provides no specific direction, ask what needs to change before proceeding.
+If the user rejects the artifacts at OpenSpec Baseline Gate, enter the Revision Loop in `phase-1-documents.md`. The rejection counts as one revision cycle toward the 3-cycle cap. Persist the rejection reason under `openspec_baseline_gate` by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing the evidence view. If the user provides no specific direction, ask what needs to change before proceeding.
 
 ### Phase 2 Gate — Task Orchestration and Git Safety
 
-After `dev-flow-planning` writes `task-orchestration.md` and `dev-flow-git` emits `git_safe`, stop and present:
+After `dev-flow-planning` persists task orchestration by authority mode—Legacy writes `task-orchestration.md`, Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot, and Graph writes through the Master Graph CLI/API before refreshing the plan/evidence view—and `dev-flow-git` emits `git_safe`, stop and present:
 
 - task count, batch count, execution order, key dependencies
 - parallel-safety summary: file/symbol overlap risks and any forced-serial tasks
@@ -209,7 +213,7 @@ After `dev-flow-planning` writes `task-orchestration.md` and `dev-flow-git` emit
 - execution mode, presented in Chinese:
   - `执行方式建议：基于当前 DAG、文件/符号重叠和 Git 安全边界，建议使用 <主线程串行 | 串行 subagent | patch-ready 并发分析 | 用户授权后的并发写入>。不会强制创建 worktree；如建议并发直接写入，需要你明确同意隔离方式。未授权时将使用串行写入或 shared-worktree patch mode。`
 
-Before user approval, record the proposed execution actor in `dev-flow-state.md` as `execution_actor_proposed`:
+Before user approval, persist the proposed execution actor as `execution_actor_proposed` by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing the evidence view. Use this evidence shape:
 
 ```yaml
 execution_actor_proposed:
@@ -220,13 +224,15 @@ execution_actor_proposed:
   pending_gate_approval: true
 ```
 
-After explicit Phase 2 execution approval, emit `execution_actor_decided` with: proposed mode, effective fallback rules, user override if any, the approval text, and whether any concurrent writing and worktree creation were explicitly approved.
+After explicit Phase 2 execution approval, persist `execution_actor_decided` with the proposed mode, effective fallback rules, user override if any, the approval text, and whether any concurrent writing and worktree creation were explicitly approved. Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing the evidence view.
 
-Do not enter Phase 3 until the user explicitly says to start execution, for example “开始执行”, “执行”, “start”, “go”, or equivalent. That approval accepts only the displayed execution mode; direct concurrent writers and worktree creation require explicit approval when they are part of the proposal. **Loop-authorized exception:** when all five loop-authorized phase mode conditions are met (see `references/routing-and-complexity.md § Loop-Authorized Phase Mode`), record `loop_authorized: true`, `loop_id`, `loop_baseline_ready` path, `loop_envelope_ready` path, and `auto_continue_scope` in `dev-flow-state.md`, then enter Phase 3 without a separate user prompt.
+Do not enter Phase 3 until the user explicitly says to start execution, for example “开始执行”, “执行”, “start”, “go”, or equivalent. That approval accepts only the displayed execution mode; direct concurrent writers and worktree creation require explicit approval when they are part of the proposal. **Loop-authorized exception:** when all five loop-authorized phase mode conditions are met (see `references/routing-and-complexity.md § Loop-Authorized Phase Mode`), persist `loop_authorized: true`, `loop_id`, `loop_baseline_ready` path, `loop_envelope_ready` path, and `auto_continue_scope` by authority mode—Legacy writes `dev-flow-state.md`, Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot, and Graph writes through the Master Graph CLI/API before refreshing the evidence view—then enter Phase 3 without a separate user prompt.
 
-If Phase 2 Gate fails (git_safe is blocked or task_orchestration_ready is insufficient), master must emit a `phase2_gate_failed` note into `dev-flow-state.md` with fields: `reason` (blocked_signal name), `blocking_detail` (what failed), and `recovery_options` (fix git config / reduce task scope / re-run planning). Do not silently stall.
+If Phase 2 Gate fails (`git_safe` is blocked or `task_orchestration_ready` is insufficient), Master must persist `phase2_gate_failed` with `reason` (blocked signal), `blocking_detail`, and `recovery_options` (fix Git config / reduce task scope / re-run planning). Legacy writes `dev-flow-state.md`; Shadow writes its approved fenced Markdown projection source and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing the evidence view. Do not silently stall.
 
 ## Completion Gate
+
+Resolve completion from the active authority: Legacy applies the Markdown checklist below; Shadow applies it to the approved fenced projection only after its snapshot verifies; Graph uses only `dev-flow graph check`, `next`, and relevant `context` over schema-valid control and evidence nodes. In Graph mode, Markdown checklist files and views are non-input evidence—their existence, absence, contents, or claimed gate clearance never make or block completion—and stale, tampered, or conflicting views are regenerated. A `transition` may record readiness only after Graph evidence exists; it cannot manufacture evidence.
 
 The final state is one of:
 
@@ -234,10 +240,10 @@ The final state is one of:
 - `ready-for-review`: artifacts/drafts exist but completion evidence is incomplete
 - `ready-to-report`: acceptance evidence proves the governed workflow reached its final state
 
-For governed medium/heavy work, the master may report `ready-to-report` only after `dev-flow-acceptance` confirms:
+For governed medium/heavy Legacy/Shadow work, Master may report `ready-to-report` only after `dev-flow-acceptance` confirms:
 
 1. required OpenSpec/opsx artifacts exist as files
-2. OpenSpec Baseline Gate and Phase 2 gates were explicitly cleared and recorded in `dev-flow-state.md`
+2. OpenSpec Baseline Gate and Phase 2 gates were explicitly cleared in the active authority: Legacy has the records in `dev-flow-state.md`; Shadow has them in its approved fenced Markdown projection with a fresh matching snapshot
 3. `dev-flow-state.md` from first planning gate; `task-orchestration.md` from Phase 2; `progress.md` from Phase 2 Gate or earlier; `delivery-report.md` from acceptance
 4. all DAG tasks are completed, explicitly accepted as deferred by the user/gate, or dynamically replanned under execution rules
 5. task, batch, final, and system-level Executable Test Matrix checks have passed or were explicitly accepted as deferred scope
@@ -248,9 +254,9 @@ For governed medium/heavy work, the master may report `ready-to-report` only aft
 10. applicable quality-gate evidence is recorded, including `ui_ux_report` when `ui_runtime` risk applies
 11. no unresolved blocker remains
 
-For lightweight work, the master may report `ready-to-report` only after `dev-flow-acceptance` confirms:
+For lightweight Legacy/Shadow work, Master may report `ready-to-report` only after `dev-flow-acceptance` confirms:
 
-1. `lightweight_artifact_ready`, `opsx_apply_complete`, `opsx_verify_complete`, and `acceptance_ready` are recorded in `dev-flow-state.md` or an equivalent persisted OpenSpec/opsx status artifact
+1. the four signals `lightweight_artifact_ready`, `opsx_apply_complete`, `opsx_verify_complete`, and `acceptance_ready` are recorded in the active authority: Legacy uses `dev-flow-state.md` or the equivalent OpenSpec/opsx status artifact; Shadow uses its approved fenced Markdown projection with a fresh matching snapshot
 2. the OpenSpec change directory exists and contains the artifacts required by the active schema
 3. implementation tasks are complete or explicitly accepted as deferred in the OpenSpec tasks artifact
 4. `/opsx:verify <change>` evidence exists, with skipped checks and residual risks recorded
@@ -261,11 +267,13 @@ For lightweight work, the master may report `ready-to-report` only after `dev-fl
 9. checker satisfies bounded convergence with no P0/P1 or unresolved material finding, unless the change is documentation-only with no behavior/config/test/user-visible impact
 10. no unresolved blocker remains
 
+For Graph mode, both governed and lightweight completion depend only on the validated Gate, Task, Test, Evidence, Git, Failure, and related nodes returned by `dev-flow graph check`, `next`, and relevant `context`. Evidence nodes may reference the artifacts listed above, but Markdown file existence or contents never independently satisfy or block completion; missing required Graph evidence blocks through the query, and generated views are regenerated.
+
 After reporting `ready-to-report`, suggest that the user perform their own acceptance and then run `/dev-flow-cr` for independent post-acceptance code review when they want CR. Do not run CR automatically as part of `/dev-flow`.
 
 ## Loop Engineering Signals
 
-Loop engineering signals operate at a separate layer from the dev-flow delivery workflow. They are produced by loop skills invoked directly via their slash commands and are **never written to `dev-flow-state.md`**. They are persisted to `loop-state.md` in the loop artifact directory (same directory as the loop-only baseline artifacts and loop report). They do not participate in phase gates and do not interact with the delivery signal registry above.
+Loop engineering signals operate at a separate layer from the dev-flow delivery workflow. They are produced by loop skills invoked directly via their slash commands and are **never written to `dev-flow-state.md`**. Legacy persists them in `loop-state.md`; Shadow persists them in its approved fenced Markdown projection and creates a fresh snapshot; Graph persists them through the Loop Graph CLI/API in `loop-graph.json` and uses `loop-state.md` only as a generated/evidence view. They do not participate in Master phase gates except through a versioned structured handoff.
 
 | Signal | Producer | Layer | Schema reference |
 |---|---|---|---|
@@ -336,6 +344,8 @@ loop_eval_result:
 ```
 
 ### Loop → Dev-Flow Handoff Traceability
+
+When both Graphs are active, create and validate the handoff with the contracts in `schemas/v1/phase-handoff.schema.json` and `lib/graph/handoff.mjs`. Bind current Loop/Master graph identities, phase, baseline, envelope, budget, and stable references. Baseline or control drift invalidates the handoff and routes to reissue; it is never merged bidirectionally.
 
 When a loop triage candidate is confirmed and `/dev-flow` is entered to implement a fix or feature identified by the loop, the agent must note the `loop_triage_ready` signal path in the initial dev-flow intent description. When a delivery loop hands off a confirmed phase, the agent must also note the `loop_baseline_ready`, `loop_control_ready`, Loop Phase DAG node, and envelope evidence. This creates a traceable record that the work originated from a loop engineering cycle rather than a direct user request. The traceability note should include: the loop skill that produced the candidate or phase, the timestamp or artifact path of the loop signal, and a brief description of why this candidate or phase was selected.
 

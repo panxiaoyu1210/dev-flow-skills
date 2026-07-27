@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/graph.schema.json",
+  "title": "Dev Flow shared graph state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema", "schemaVersion", "graphKind", "id", "topicRef", "authority",
+    "revision", "acyclicEdgeTypes", "nodes", "edges", "permissions", "eventRefs"
+  ],
+  "properties": {
+    "$schema": {"type": "string", "minLength": 1},
+    "schemaVersion": {"const": "1.0.0"},
+    "graphKind": {"enum": ["master", "loop"]},
+    "id": {"$ref": "#/$defs/id"},
+    "topicRef": {"type": "string", "minLength": 1},
+    "authority": {"$ref": "#/$defs/authority"},
+    "revision": {"type": "integer", "minimum": 0},
+    "acyclicEdgeTypes": {
+      "type": "array",
+      "const": ["depends_on", "control"]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/node.schema.json"}
+    },
+    "edges": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/edge.schema.json"}
+    },
+    "permissions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/permission"}
+    },
+    "eventRefs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/eventRef"}
+    },
+    "handoffReceipts": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/handoff-receipt.schema.json"}
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "dev-flow-utc-date-time"
+    },
+    "authority": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode", "sourceOfTruth", "syncDirection", "graphMutationAllowed",
+            "markdownViewReadableAsAuthority"
+          ],
+          "properties": {
+            "mode": {"const": "legacy"},
+            "sourceOfTruth": {"const": "markdown"},
+            "syncDirection": {"const": "none"},
+            "graphMutationAllowed": {"const": false},
+            "markdownViewReadableAsAuthority": {"const": true}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode", "sourceOfTruth", "syncDirection", "graphMutationAllowed",
+            "markdownViewReadableAsAuthority", "markdownSources"
+          ],
+          "properties": {
+            "mode": {"const": "shadow"},
+            "sourceOfTruth": {"const": "markdown"},
+            "syncDirection": {"const": "markdown_to_graph"},
+            "graphMutationAllowed": {"const": false},
+            "markdownViewReadableAsAuthority": {"const": true},
+            "markdownSources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"$ref": "#/$defs/markdownSource"}
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode", "sourceOfTruth", "syncDirection", "graphMutationAllowed",
+            "markdownViewReadableAsAuthority"
+          ],
+          "properties": {
+            "mode": {"const": "graph"},
+            "sourceOfTruth": {"const": "graph"},
+            "syncDirection": {"const": "graph_to_markdown_view"},
+            "graphMutationAllowed": {"const": true},
+            "markdownViewReadableAsAuthority": {"const": false}
+          }
+        }
+      ]
+    },
+    "permission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "actorId", "action", "resourceRef", "effect"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "actorId": {"$ref": "#/$defs/id"},
+        "action": {"type": "string", "minLength": 1},
+        "resourceRef": {"type": "string", "minLength": 1},
+        "effect": {"enum": ["allow", "deny"]},
+        "grantRef": {"type": "string", "minLength": 1},
+        "grantHash": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "markdownSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "hash"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1},
+        "hash": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "eventRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "ref", "hash"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "ref": {"type": "string", "minLength": 1},
+        "hash": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

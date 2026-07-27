@@ -1,0 +1,21 @@
+{
+  "$schema": "https://dev-flow.dev/schemas/v1/master-graph.schema.json",
+  "schemaVersion": "1.0.0",
+  "graphKind": "master",
+  "id": "master.invalid",
+  "topicRef": "Docs/invalid",
+  "authority": {
+    "mode": "legacy",
+    "sourceOfTruth": "markdown",
+    "syncDirection": "none",
+    "graphMutationAllowed": false,
+    "markdownViewReadableAsAuthority": true
+  },
+  "revision": 0,
+  "acyclicEdgeTypes": ["depends_on", "control"],
+  "nodes": [{"id": "goal.invalid", "type": "Goal", "status": "active"}],
+  "edges": [],
+  "permissions": [],
+  "handoffReceipts": [],
+  "eventRefs": []
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "resultId": "result.contract",
+  "resultType": "phase_eval",
+  "direction": "master_to_loop",
+  "handoffId": "handoff.contract",
+  "phaseId": "phase.contract",
+  "masterGraph": {
+    "kind": "master",
+    "id": "master.contract",
+    "hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "schemaVersion": "1.0.0"
+  },
+  "loopGraph": {
+    "kind": "loop",
+    "id": "loop.contract",
+    "hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "schemaVersion": "1.0.0"
+  },
+  "outcome": "passed",
+  "handoffHash": "3434343434343434343434343434343434343434343434343434343434343434",
+  "requirementIds": ["req.contract"],
+  "evidenceSummaries": [],
+  "evaluationHash": "9999999999999999999999999999999999999999999999999999999999999999",
+  "issuedAt": "2026-07-24T11:00:00.000Z"
+}

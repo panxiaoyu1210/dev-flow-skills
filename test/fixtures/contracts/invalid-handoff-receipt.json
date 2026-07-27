@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "handoffId": "handoff.contract",
+  "projectionHash": "1111111111111111111111111111111111111111111111111111111111111111",
+  "phaseId": "phase.contract",
+  "fromGraphId": "loop.contract",
+  "toGraphId": "master.contract",
+  "acceptedAt": "2026-07-24T10:00:00.000Z",
+  "actorId": "master.acceptance",
+  "receiptHash": "not-a-sha256"
+}

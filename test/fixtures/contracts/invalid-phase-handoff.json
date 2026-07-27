@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0.0",
+  "handoffId": "handoff.contract",
+  "direction": "master_to_loop",
+  "phaseId": "phase.contract",
+  "phaseHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "fromGraph": {
+    "kind": "loop",
+    "id": "loop.contract",
+    "hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "schemaVersion": "1.0.0"
+  },
+  "toGraph": {
+    "kind": "master",
+    "id": "master.contract",
+    "hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "schemaVersion": "1.0.0"
+  },
+  "goalId": "goal.contract",
+  "baselineId": "baseline.contract",
+  "baselineHash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "evalId": "eval.contract",
+  "requirementRefs": ["req.contract"],
+  "requirementSummaries": [{
+    "id": "req.contract",
+    "ref": "openspec/changes/contract/spec.md#requirement",
+    "hash": "9999999999999999999999999999999999999999999999999999999999999999",
+    "sourceRevision": "git:contract"
+  }],
+  "artifactRefs": ["openspec/changes/contract/design.md"],
+  "envelopeRef": "Docs/contract/loop/loop-envelope.md",
+  "envelopeSummary": {
+    "id": "envelope.contract",
+    "status": "passed",
+    "ref": "Docs/contract/loop/loop-envelope.md",
+    "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "budgetRef": "Docs/contract/loop/loop-envelope.md#budget",
+  "budgetSummary": {
+    "id": "budget.contract",
+    "status": "active",
+    "ref": "Docs/contract/loop/loop-envelope.md#budget",
+    "hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "issuedAt": "2026-07-24T10:00:00.000Z",
+  "projectionHash": "1212121212121212121212121212121212121212121212121212121212121212"
+}

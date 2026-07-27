@@ -15,6 +15,8 @@
 
 ## Capability and Permission Check
 
+Graph permissions summarize real grants; they do not create them. A capability-exception reason is audit metadata only and cannot turn a deny/missing grant into permission. If `dev-flow graph transition` rejects the actor, preserve the prior Graph/Git state and route the blocker.
+
 Before selecting any mode that creates commits, pushes branches, opens PRs, or merges, verify:
 
 - working tree cleanliness and current branch
@@ -143,3 +145,5 @@ Never force-push, hard-reset shared work, amend pushed commits, bypass hooks, or
 ## Required Signal
 
 Emit `git_safe` with: isolation mode, integration mode, writer concurrency limit, allowed side effects, forbidden side effects, capability/permission check result, rollback constraints, unresolved Git blockers, and the canonical integration states allowed for this workflow.
+
+In Graph mode, persist the machine representation through the versioned schema and atomic Graph writer, then run `dev-flow graph check`; the Markdown signal is a view/evidence index rather than a second writable fact source.

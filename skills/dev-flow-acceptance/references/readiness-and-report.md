@@ -13,7 +13,9 @@
 
 ## Inputs
 
-Read and reconcile:
+Recover actual Git/filesystem/task results first. In Graph mode, then read `Docs/<topic>/dev-flow-graph.json`, run `dev-flow graph check`, and request targeted `context` before reading OpenSpec/evidence views. In Shadow, validate the fenced projection source and checked snapshot; in Legacy, use the Markdown ledgers. For a loop-authorized phase, validate the accepted handoff against current Loop and Master control state before producing a phase result. Generated Markdown views never override Graph authority.
+
+Then read and reconcile the applicable evidence:
 
 - `dev-flow-state.md`
 - `task-orchestration.md`
@@ -25,7 +27,7 @@ Read and reconcile:
 - Runtime Orchestration State from `dev-flow-execution`
 - loop baseline / Loop Phase DAG / phase ID when invoked from a delivery loop
 
-Do not rely on chat memory over files and actual state.
+Do not rely on chat memory over files and actual state. Every later control-state persistence instruction follows the selected mode: Legacy writes its ledger, Shadow writes its approved projection source and creates a new snapshot, and Graph writes through the CLI/API before regenerating evidence views.
 
 ## Final Acceptance Duties
 
@@ -47,6 +49,7 @@ Do not rely on chat memory over files and actual state.
 9. Write `Docs/<topic>/delivery-report.md` or the canonical legacy path.
 10. For loop-authorized phases, write phase acceptance evidence that the loop can use for `phase_eval` and next-phase or repair decisions.
 11. Perform safe cleanup through `dev-flow-git` only where allowed.
+12. In Graph mode, create the schema-valid acceptance result and perform any completion transition only after the independent checker and all prerequisites pass.
 
 ## Delivery Report Contents
 
@@ -111,7 +114,9 @@ If final checks fail:
 
 ## Acceptance Readiness
 
-For governed medium/heavy work, report `ready-to-report` only when:
+Readiness is authority-specific: Legacy evaluates the persisted Markdown ledgers; Shadow evaluates the approved fenced Markdown projection only after its snapshot verifies; Graph mode additionally requires `dev-flow graph check`, `next`, and targeted `context`, whose results are the sole control input for readiness. Markdown views are never a Graph completion criterion: their existence, missing content, stale content, tampering, or claimed gate clearance cannot make or block readiness, and conflicting views are regenerated from Graph.
+
+For governed medium/heavy Legacy/Shadow work, report `ready-to-report` only when:
 
 1. required OpenSpec/opsx artifacts exist as persisted files
 2. OpenSpec Baseline Gate and Phase 2 gates were explicitly cleared in `dev-flow-state.md`
@@ -126,9 +131,9 @@ For governed medium/heavy work, report `ready-to-report` only when:
 11. applicable quality gates are satisfied or marked N/A with reason, including `ui_ux_report` when `ui_runtime` risk applies
 12. no unresolved blockers remain
 
-For lightweight opsx/OpenSpec work, report `ready-to-report` only when:
+For lightweight Legacy/Shadow opsx/OpenSpec work, report `ready-to-report` only when:
 
-1. `lightweight_artifact_ready`, `opsx_apply_complete`, `opsx_verify_complete`, and `acceptance_ready` are persisted in `dev-flow-state.md` or an equivalent OpenSpec/opsx status artifact
+1. the four signals `lightweight_artifact_ready`, `opsx_apply_complete`, `opsx_verify_complete`, and `acceptance_ready` are persisted by the active authority: Legacy records them in `dev-flow-state.md` or the equivalent OpenSpec/opsx status artifact; Shadow records them in its approved fenced Markdown projection and has a fresh matching snapshot
 2. the OpenSpec change directory exists and contains the artifacts required by the active schema
 3. implementation tasks are complete or explicitly accepted as deferred in the OpenSpec tasks artifact
 4. `/opsx:verify <change>` evidence exists and records skipped checks, residual risks, and final recommendation
@@ -139,11 +144,13 @@ For lightweight opsx/OpenSpec work, report `ready-to-report` only when:
 9. checker satisfies bounded convergence with no P0/P1 or unresolved material findings; documentation-only changes with no behavior/config/test/user-visible impact retain their existing exception
 10. no unresolved blockers remain
 
-If any item is missing, report `not-ready` or `ready-for-review` and continue the appropriate dev-flow stage rather than claiming completion.
+For Graph mode, both governed and lightweight readiness come only from schema-valid Gate, Task, Test, Evidence, Git, and related nodes returned by `dev-flow graph check`, `next`, and targeted `context`. Evidence nodes may reference OpenSpec, test, delivery, or report files, but a Markdown file's existence, absence, or contents never independently satisfy or block Graph readiness. Missing required Graph evidence blocks through the Graph query; stale, tampered, or conflicting generated views are regenerated.
+
+If any authority-mode criterion is missing, report `not-ready` or `ready-for-review` and continue the stage selected by that authority rather than claiming completion.
 
 ## Required Signal
 
-Emit and persist `acceptance_ready`:
+Persist `acceptance_ready` by authority mode: Legacy writes `dev-flow-state.md`; Shadow writes the approved fenced Markdown projection and creates a fresh snapshot; Graph writes through the Master Graph CLI/API before refreshing any evidence view. The compatibility evidence shape is:
 
 ```yaml
 acceptance_ready:

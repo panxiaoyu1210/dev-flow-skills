@@ -6,9 +6,15 @@ Dev-flow owns routing, gates, persisted artifacts, and evidence. It directly reu
 
 Loop Engineering is an outer control plane around dev-flow. `/dev-flow-loop` can preserve a goal across multiple dev-flow rounds, own confirmed loop-only baseline artifacts, create a cross-phase Loop Phase DAG, run eval/repair decisions, and auto-continue inside an approved envelope. `/dev-flow-triage` only discovers candidates. `/dev-flow-scheduler` only manages approved cron/heartbeat automations.
 
+## Optional Graph Control
+
+The Node.js ESM Graph Control Kernel makes stable workflow facts machine-checkable without replacing the artifacts above. `dev-flow graph init|check|impact|next|context|transition` supports human and JSON output. Legacy leaves Markdown authoritative; Shadow explicitly opts in through a fenced `dev-flow-graph` projection, generates a read-only Markdown-to-Graph snapshot, and blocks on projection errors or drift; Graph makes JSON authoritative and generates Markdown views. Bidirectional merge is forbidden.
+
+Master state lives at `Docs/<topic>/dev-flow-graph.json`; Loop state lives separately at `Docs/<topic>/loop/loop-graph.json`; raw events and temporary evidence live at `.dev-flow/runtime/<run-id>/`. Master and Loop exchange a versioned phase handoff and acceptance/phase-eval result. An `unknown_impact` response routes conservatively to replanning. See [Graph Control Kernel](graph-control-kernel.md) for contracts, stable exit codes, and compatibility details.
+
 ## Phase 0: Master
 
-`dev-flow-master` is the entry controller. It loads `dev-flow-intent`, selects the final route, checks gates, and determines which focused skill owns the next stage.
+`dev-flow-master` is the entry controller. It loads `dev-flow-intent`, selects the final route, checks gates, and determines which focused skill owns the next stage. When Graph state exists, it runs `check`, `next`, and targeted `context` before routing; Legacy projects retain the same Markdown path.
 
 ## Intent Routing
 
@@ -52,11 +58,15 @@ The loop's `phase-artifacts.md` or `opsx-index.md` maps each phase to its OpenSp
 
 `dev-flow-execution` keeps implementation moving until all planned tasks settle. It owns runtime orchestration state, sub-agent settlement, dynamic replanning, and recovery.
 
+When Graph state exists, execution previews typed `impact` for requirement/artifact/file/task changes, propagates stale state only in Graph mode, queries task eligibility through `next`, and records a `transition` only after real evidence and permission succeed.
+
 Implementation tasks use TDD per task through `superpowers:test-driven-development` when available, or an equivalent local fallback. Each task records RED/GREEN/refactor evidence before acceptance.
 
 ## Phase 4: Acceptance
 
-`dev-flow-acceptance` collects verification evidence and decides whether the change is ready. It verifies `dev-flow-state.md`, task progress, task local verification evidence, TDD evidence, Git integration states, system-level checks, requirements/design/test coverage, and applicable quality reports before producing the delivery report. Independent CR is separate: after user acceptance, run `/dev-flow-cr` to produce a CR report.
+`dev-flow-acceptance` collects verification evidence and decides whether the change is ready through the active authority: Legacy evaluates its Markdown ledgers, Shadow evaluates the approved projection plus verified snapshot, and Graph uses only `graph check`, `next`, and targeted `context` while treating Markdown as non-input evidence. Task-local verification, TDD, Git integration, system checks, requirements/design/test coverage, and applicable quality reports remain required evidence. Independent CR is separate: after user acceptance, run `/dev-flow-cr` to produce a CR report.
+
+For a loop-authorized Graph phase, acceptance emits a schema-valid result bound to the accepted handoff and current Loop/Master Graph identities. Loop consumes that result before deciding next phase, repair, or stop.
 
 ## Requirement changes during execution
 

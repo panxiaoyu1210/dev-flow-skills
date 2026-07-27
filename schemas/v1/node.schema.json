@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/node.schema.json",
+  "title": "Dev Flow graph node",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "status"],
+  "properties": {
+    "id": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "type": {
+      "enum": [
+        "Requirement", "Task", "Test", "Gate", "Evidence", "Git", "Failure",
+        "Goal", "Baseline", "Phase", "Envelope", "Budget", "Eval"
+      ]
+    },
+    "status": {
+      "enum": [
+        "pending", "planned", "ready", "active", "in_progress", "blocked",
+        "passed", "failed", "rejected", "stale", "complete", "resolved",
+        "exhausted", "stopped", "approved", "user_confirmed", "available"
+      ]
+    },
+    "ref": {"type": "string", "minLength": 1},
+    "hash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+    "sourceRevision": {"type": "string", "minLength": 1},
+    "subjectId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "subjectHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+    "summary": {"type": "string", "minLength": 1},
+    "capturedAt": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/timestamp"},
+    "expiresAt": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/timestamp"},
+    "owner": {"type": "string", "minLength": 1},
+    "actorId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "makerActorId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "reviewerActorId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "parallelGroup": {"type": "string", "minLength": 1},
+    "forcedSerial": {"type": "boolean"},
+    "safeIntegrationRef": {"type": "string", "minLength": 1},
+    "files": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "symbols": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "prerequisiteIds": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    },
+    "relatedNodeIds": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    },
+    "permissionIds": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    },
+    "eventRefIds": {
+      "type": "array",
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    }
+  },
+  "allOf": [
+    {
+      "oneOf": [
+        {"properties": {"type": {"const": "Requirement"}, "status": {"enum": ["pending", "planned", "ready", "active", "blocked", "stale", "complete"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Task"}, "status": {"enum": ["pending", "planned", "ready", "in_progress", "blocked", "failed", "stale", "complete"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Test"}, "status": {"enum": ["pending", "planned", "ready", "active", "blocked", "passed", "failed", "stale"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Gate"}, "status": {"enum": ["pending", "blocked", "passed", "rejected", "stale"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Evidence"}, "status": {"enum": ["pending", "passed", "failed", "stale"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Git"}, "status": {"enum": ["pending", "ready", "active", "blocked", "failed", "stale", "complete"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Failure"}, "status": {"enum": ["pending", "active", "blocked", "stale", "resolved"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Goal"}, "status": {"enum": ["pending", "active", "blocked", "stale", "complete", "stopped"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Baseline"}, "status": {"enum": ["pending", "passed", "approved", "user_confirmed", "rejected", "blocked", "stale"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Phase"}, "status": {"enum": ["pending", "ready", "active", "blocked", "failed", "stale", "complete", "stopped"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Envelope"}, "status": {"enum": ["pending", "passed", "approved", "rejected", "blocked", "stale"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Budget"}, "status": {"enum": ["pending", "active", "available", "exhausted", "blocked", "stale", "stopped"]}}, "required": ["type", "status"]},
+        {"properties": {"type": {"const": "Eval"}, "status": {"enum": ["pending", "ready", "active", "passed", "failed", "blocked", "stale", "stopped"]}}, "required": ["type", "status"]}
+      ]
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {"type": {"const": "Evidence"}},
+        "required": ["type"]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "subjectId": true,
+          "summary": true,
+          "subjectHash": true,
+          "sourceRevision": true,
+          "capturedAt": true,
+          "expiresAt": true
+        },
+        "required": [
+          "subjectId", "summary", "subjectHash", "sourceRevision", "capturedAt", "expiresAt"
+        ]
+      }
+    }
+  ]
+}

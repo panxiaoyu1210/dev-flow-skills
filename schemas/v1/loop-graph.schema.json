@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/loop-graph.schema.json",
+  "title": "Dev Flow Loop Graph",
+  "allOf": [
+    {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json"},
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {"const": "https://dev-flow.dev/schemas/v1/loop-graph.schema.json"},
+        "graphKind": {"const": "loop"},
+        "handoffReceipts": false,
+        "nodes": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {"$ref": "https://dev-flow.dev/schemas/v1/node.schema.json"},
+              {
+                "type": "object",
+                "properties": {
+                  "type": {"enum": ["Goal", "Baseline", "Phase", "Envelope", "Budget", "Eval"]}
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

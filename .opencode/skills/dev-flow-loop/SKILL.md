@@ -1,80 +1,51 @@
 ---
 name: dev-flow-loop
-description: Use when the user asks for Loop Engineering, goal-preserving automation, repeated or multi-round dev-flow control, loop DAGs, task discovery inboxes, automation guardrails, loop review, or deciding how an outer loop should prepare loop-only baseline artifacts and drive phase-level dev-flow work.
+description: Use when the user asks for Loop Engineering, goal-preserving automation, repeated or multi-round control, loop DAGs, candidate inboxes, automation guardrails, loop review, or phase handoff to dev-flow.
 ---
 
 # Dev Flow Loop
 
-Loop Engineering is the outer control plane around dev-flow. It owns target retention, loop-only baseline artifacts, Loop Phase DAG, eval/repair decisions, and safe continuation; dev-flow owns phase execution.
+Own the outer control plane: goal, confirmed baseline, cross-phase DAG, envelope, budget, eval/repair, and stop decisions. Dev-flow owns phase-internal implementation. All user-facing replies and persisted Markdown artifacts are written in Chinese.
+
+## Machine Authority
+
+The versioned contracts in `schemas/v1/` and the `dev-flow graph` CLI are the machine-rule source of truth. The Loop Graph is separate from the Master Graph. Read `references/graph-control.md` before mode selection, phase eligibility, budget/eval decisions, handoff, or recovery; read `references/control-plane.md` for artifact/checker details.
+
+Apply the shared bounded-convergence rule from `../dev-flow-master/references/state-and-gates.md`; the approved envelope supplies the Loop evaluation budget without redefining the rule.
 
 ## Boundary
 
-- Default read-only for triage, review, workflow design, and automation proposal scopes.
-- **Writing any baseline artifact requires explicit confirmation from the user in the current turn. Prior discussion, even extensive requirements brainstorming, is NOT sufficient. If the user has not confirmed in this turn, ask whether to proceed with writing the baseline documents and stop until confirmed.**
-- Use the loop artifact directory, normally `Docs/<topic>/loop/`, only for loop baseline/state/DAG/envelope/index artifacts.
-- Treat those loop documents as Git-tracked formal artifacts when Git integration is authorized; keep raw checker rounds, logs, screenshots/traces, benchmarks, and other transient evidence under `.dev-flow/runtime/<run-id>/`.
-- Do not move or copy OpenSpec/opsx originals into the loop artifact directory; phase originals stay in `openspec/changes/<change-id>/` or the project's standard OpenSpec/opsx location.
-- Implementation files and implementation specs change only through phase-level dev-flow OpenSpec/opsx.
-- Do not run as a dev-flow stage, and do not emit `routing_decided`, `execution_settled`, `acceptance_ready`, or `cr_report_ready`.
-- Do not start `/dev-flow` from unconfirmed triage candidates.
-- Do not start `/dev-flow-cr` from unconfirmed triage candidates.
-- After Baseline Docs Gate and Execution Envelope Gate are both approved, auto-continue within baseline by handing phases to dev-flow without asking the user to retype slash commands.
-- Freezing the initial baseline, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval.
-- Exceeding baseline, budget, retry, stop-condition, or side-effect boundaries requires stopping and asking the user.
-- Do not create, update, pause, resume, or delete schedulers/automations; route those requests to `dev-flow-scheduler`.
-- Do not start commits, pushes, PRs, merges, worktrees, or paid/external actions automatically.
-- Keep loop state separate from `dev-flow-state.md`; phase-level dev-flow artifacts may reference loop IDs for traceability.
+Default read-only for design, review, triage, and proposals. Writing the initial baseline, freezing it, approving the Loop Phase DAG, and enabling `within_confirmed_baseline` require explicit user approval. Confirmed phases may auto-continue only inside the approved envelope.
 
-## Checker Subagent Authorization
+Keep loop state separate from `dev-flow-state.md`. Formal Loop state belongs under `Docs/<topic>/loop/`; phase OpenSpec/opsx originals remain in their project location. Transient evidence belongs under `.dev-flow/runtime/<run-id>/`.
 
-When this skill requires a checker subagent, the checker is part of the approved dev-flow-loop gate, not a separate optional delegation. Spawn it automatically after the relevant artifacts exist; do not pause to ask whether to run the checker and do not let the main agent self-score gate readiness.
+Do not start `/dev-flow` or `/dev-flow-cr` from an unconfirmed triage item. Scheduler mutations belong to `dev-flow-scheduler`; Git/external/paid effects remain approval-bound.
 
-Checker subagents are read-only reviewers unless the active gate explicitly assigns them artifact-writing work. They may inspect raw baseline docs, DAG/envelope files, OpenSpec/opsx artifacts, task orchestration, phase evidence, logs, and reports; they must return findings, P0/P1 blockers, a 0-100 score, and gate readiness. User approval is still required for writing baseline artifacts, freezing the baseline, approving the execution envelope, starting side effects, commits, pushes, PRs, or worktree creation.
+## Steps
 
-Use bounded convergence at every loop gate: the quality target is 95, the convergence floor is 90, and `max_checker_evaluations` is a configurable per-checkpoint upper budget that defaults to 3. A 90–94 result may pass when objective checks pass, no P0/P1 or unresolved material finding remains, and either the checker reports only non-material findings or the latest re-review improves by fewer than 2 points. A material finding affects behavior, correctness, security, data integrity, compatibility, deployability, acceptance evidence, or a machine-consumed schema; prose style, formatting, YAML key order, or an unconsumed field name is non-material and must not trigger score-chasing edits or force the budget to be exhausted.
+1. **Recover scope and authority.** Classify workflow design, triage, run review, automation proposal, dispatch handoff, or delivery loop. Run `dev-flow graph check`, `next`, and targeted `context` when a Loop Graph exists; otherwise follow Legacy Markdown.
+   **Complete when:** goal, trigger, evidence, authority mode, current baseline/envelope, budget, and side-effect boundary are known.
 
-## Language Policy
+2. **Establish the baseline.** For delivery loops, discuss goal, requirements, blockers, non-goals, design options, and success evidence; then obtain current-turn approval before writing loop-only baseline artifacts. Use an independent checker and Baseline Docs Gate.
+   **Complete when:** the full baseline set is checker-reviewed, material findings are resolved/routed, user approval is persisted, and `loop_baseline_ready` is truthful.
 
-All user-facing replies and all generated artifact documents (requirements, design, specs, CLI specs, test plans, delivery reports, and other persisted Markdown files) in dev-flow must be written in Chinese.
+3. **Govern the phase DAG and envelope.** Create the Loop Phase DAG, load `dev-flow-loop-envelope`, and independently check DAG/envelope quality. The Loop Graph may control Goal/Baseline/Phase/Envelope/Budget/Eval only.
+   **Complete when:** phases are acyclic and covered, entry/exit/repair criteria are checkable, controls are approved, and `loop_control_ready` plus `loop_envelope_ready` agree.
 
-## Core Contract
+4. **Hand off one eligible phase.** Use Loop Graph `next`/`context`; issue the structured phase handoff only for a ready phase inside the confirmed baseline with live envelope and budget. Loop does not schedule Master-internal Tasks, and Master does not modify Loop Baseline.
+   **Complete when:** the handoff validates against the versioned contract and binds both graph identities, phase, baseline, envelope, budget, and stable references.
 
-1. Establish loop scope: workflow design, repository triage, completed-run review, automation proposal, dispatch handoff, or delivery loop.
-2. For delivery loops, discuss requirements, blockers, and brainstorming options. **When discussion is complete, explicitly ask the user whether to proceed with writing the baseline documents — do not proceed to Step 3 until the user confirms in this turn.**
-3. Produce loop-only baseline artifacts (not `/dev-flow` implementation documents); reuse `assets/baseline-templates/`:
-   - `requirements.md`, `high-level-design.md`, `detailed-design.md`, `test-plan.md`, `test-cases.xlsx`
-   - Every document must include all required Mermaid diagrams filled with real project-specific names; unfilled placeholders are a checker-gate blocker; see `references/control-plane.md §Delivery Loop Lifecycle step 3` for the mandatory diagram list
-   - After producing the artifact set, spawn a checker subagent
-   - The checker scores the full artifact set 0–100 against `references/control-plane.md §Baseline Document Quality Checklist`
-   - Record the score in `loop_baseline_ready.checker_score`
-   - Resolve material findings and apply the bounded convergence policy; do not revise only to chase 95
-   - Then get Baseline Docs Gate approval
-4. Write the Loop Phase DAG and load `dev-flow-loop-envelope`:
-   - Produce the Loop Phase DAG (phase nodes, dependencies, entry/exit criteria, repair policy) and the Execution Envelope (budget, stop conditions, side-effect boundaries, `auto_continue_scope`)
-   - Spawn a checker subagent to score the DAG and Envelope 0–100 against `references/control-plane.md §DAG and Envelope Quality Checklist`
-   - Record the score in `loop_control_ready.dag_envelope_checker_score`
-   - Resolve material findings and apply the bounded convergence policy; do not revise only to chase 95
-   - Then get Execution Envelope Gate approval for the DAG, `auto_continue_scope`, and `dev_flow_phase_handoff`
-5. Execute each phase by handing to dev-flow in loop-authorized phase mode:
-   - **Before starting execution**, verify `openspec_artifact_ready.checker_score` and `task_orchestration_ready.checker_score` are recorded and satisfy dev-flow-planning's bounded convergence policy; do not start implementation if either result is absent or `not-ready`
-   - phase-level OpenSpec/opsx, phase-internal task DAG, detailed test matrix, TDD per task via superpowers, system-level acceptance evidence
-6. Record phase OpenSpec/opsx paths and status in `phase-artifacts.md` or `opsx-index.md`; do not duplicate the OpenSpec change directory under loop artifacts.
-7. Run a checker subagent for `phase_eval` after each phase or material repair round; record `phase_eval_result.checker_score` and apply bounded convergence. A passing phase has no P0/P1 or unresolved material finding and either reaches 95 or converges at 90–94 after the one allowed targeted re-review; do not call `/dev-flow-cr` or emit `cr_report_ready` unless the user explicitly runs `/dev-flow-cr`.
-8. Load `dev-flow-loop-triage` when observing repo/CI/diff/issues/OpenSpec/dev-flow artifacts to produce a candidate inbox.
-9. Use maker-checker separation before freezing baseline, approving an envelope, or recommending handoff from triage.
+5. **Evaluate and continue.** Consume the Master acceptance result, run independent `phase_eval`, preview/apply typed impact for loop control changes, and choose next phase, inside-baseline repair, or stop. Treat `unknown_impact` conservatively.
+   **Complete when:** phase result, checker evidence, budget/repair counters, next owner/action, and Loop Graph transition agree; final completion also has `loop_eval_result`.
 
-## References
+6. **Route adjacent branches.** Load `dev-flow-loop-triage` for Candidate Inbox work and `dev-flow-scheduler` only after an approved automation request.
+   **Complete when:** the output is read-only evidence or a concrete confirmation question; no implementation or scheduler side effect was inferred.
 
-- `references/control-plane.md`: Load before reviewing loop design, preparing loop-only baseline artifacts, creating a Loop Phase DAG, proposing automation, writing loop artifacts, or emitting loop signals.
-- `assets/baseline-templates/`: Reusable loop-only baseline templates for requirements, high-level design, detailed design, test plan, and the execution-level test case workbook. These assets belong to Loop Engineering, not `/dev-flow` implementation planning.
+## Context Pointers
 
-## Required Signals
+- `references/control-plane.md`: baseline assets, checker gates, DAG/envelope checklist, signals, and reports.
+- `references/graph-control.md`: dual-graph boundary, modes, commands, structured handoff/result, impact, and stops.
+- `assets/baseline-templates/`: loop-only baseline templates.
+- `../dev-flow-master/references/state-and-gates.md` § Bounded Convergence Policy: the single source for checker thresholds, materiality, and evaluation budget semantics.
 
-Delivery-loop signals and user-approved persisted loop artifacts are written to `loop-state.md` in the loop artifact directory. Read-only triage or workflow design scopes emit signals in the reply unless the user asks to persist loop artifacts. Loop signals are never written to `dev-flow-state.md`.
-
-- `loop_baseline_ready`
-- `loop_control_ready`
-- `phase_eval_result`
-- `loop_eval_result`
-
-Use `references/control-plane.md` for full fields, including `loop_artifact_dir`, `phase_artifact_index`, quality thresholds, evidence paths, and stop decisions.
+Every step must satisfy its **Complete when:** criterion. A checker score, artifact file, or phase agent success alone cannot complete a loop stage.

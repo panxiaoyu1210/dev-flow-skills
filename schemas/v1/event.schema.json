@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/event.schema.json",
+  "title": "Dev Flow immutable runtime event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "id", "graphId", "eventType", "occurredAt", "actorId",
+    "subjectIds", "payload"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "id": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "graphId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "eventType": {
+      "enum": [
+        "init", "transition", "impact", "gate_check", "handoff", "phase_result",
+        "permission_decision", "evidence_recorded", "failure_recorded"
+      ]
+    },
+    "occurredAt": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/timestamp"},
+    "actorId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "subjectIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"}
+    },
+    "payload": {"type": "object"},
+    "previousEventHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"}
+  }
+}

@@ -1,36 +1,37 @@
 ---
 name: dev-flow-git
-description: Use when dev-flow must choose or apply Git isolation, commits, PRs, patch-ready output, conflict handling, rollback, branch cleanup, or side-effect permissions.
+description: Use when dev-flow must choose or apply Git isolation, commits, PRs, patch-ready output, conflict handling, rollback, cleanup, or side-effect permissions.
 ---
 
 # dev-flow-git
 
-Own Git isolation, integration mode, side-effect permissions, rollback, conflict handling, and cleanup. Execution may reference Git mode but must not invent Git permissions.
+Own Git isolation, integration state, permissions, rollback, conflict handling, and cleanup. It does not implement product changes. All user-facing replies and persisted Markdown artifacts are written in Chinese.
 
-## Boundary
+## Machine Authority
 
-This skill owns Git isolation mode selection, branch/worktree lifecycle, integration state transitions, rollback, and safety gate enforcement. Does NOT execute code changes — only manages Git state.
+The versioned contracts in `schemas/v1/` and the `dev-flow graph` CLI are the machine-rule source of truth for Graph permissions and Git control state. Read `../dev-flow-master/references/graph-control.md` before permission-backed Graph transitions; Git operational truth remains actual repository state plus the references below.
 
-## Core Contract
+## Steps
 
-- Resolve Git mode before Phase 2 Gate.
-- Never force worktree mode. Recommend or ask for it when concurrent direct writers would benefit from isolation; if not approved, use serial writers or shared-worktree patch mode.
-- Default to patch-ready mode when commits, pushes, PRs, merges, or destructive actions are not explicitly authorized or supported.
-- Use exact canonical integration state names in persisted artifacts.
-- Preserve unrelated user changes and avoid staging/committing them unless explicitly authorized.
-- Classify artifacts by role, not extension: keep canonical dev-flow, Loop, OpenSpec/opsx, code, config, and test artifacts eligible for tracking; isolate transient verification output under `.dev-flow/runtime/<run-id>/` and stage only through an explicit staging allowlist.
+1. **Inspect capability and scope.** Read actual branch/worktree/status/remotes, user authorization, repository policy, task overlap, and Graph `context` when present. Preserve unrelated user changes.
+   **Complete when:** allowed and forbidden side effects, target paths, authority, rollback constraints, and unresolved blockers are explicit.
 
-## References
+2. **Select isolation and integration.** Apply `references/modes-and-states.md`; writer concurrency never exceeds both DAG safety and repository isolation. Default to patch-ready when commit/remote authority is absent.
+   **Complete when:** one isolation mode, one integration mode, writer cap, fallback, and allowed canonical task states are selected.
 
-- Read `references/modes-and-states.md` before selecting isolation mode, integration mode, writer concurrency, or canonical task integration states.
-- Read `references/operations-and-safety.md` before creating worktrees/branches, staging, committing, pushing, opening PRs, merging, applying shared patches, handling conflicts, rolling back, or cleaning up.
+3. **Emit the safety decision.** Persist `git_safe`; when Graph mode models the decision, validate it with `dev-flow graph check` and expose only the minimal permission context to the next owner.
+   **Complete when:** the Phase 2 consumer can machine-check permissions and no capability exception is treated as a grant.
 
-## Language Policy
+4. **Perform approved operations.** Follow `references/operations-and-safety.md`; use explicit-path staging allowlists, keep transient evidence under `.dev-flow/runtime/<run-id>/`, and record Graph `transition` only after the real Git action and evidence succeed.
+   **Complete when:** actual Git state, persisted integration state, Graph state, and verification evidence agree for every operated task.
 
-All user-facing replies and all generated artifact documents (requirements, design, specs, CLI specs, test plans, delivery reports, and other persisted Markdown files) in dev-flow must be written in Chinese.
+5. **Resolve or stop.** Handle conflicts, rollback, and cleanup only inside the approved mode. Route any destructive or broader side effect to explicit user approval.
+   **Complete when:** the operation is safely complete with recovery evidence, or a blocker states the exact permission/action and next owner.
 
-## Required Signal
+## Context Pointers
 
-Emit `git_safe` with isolation mode, integration mode, writer concurrency limit, allowed side effects, forbidden side effects, capability/permission check result, rollback constraints, unresolved Git blockers, and allowed canonical integration states.
+- `references/modes-and-states.md`: isolation, integration, concurrency, and canonical states.
+- `references/operations-and-safety.md`: permission checks, formal/transient files, staging, operations, conflicts, rollback, and cleanup.
+- `../dev-flow-master/references/graph-control.md`: Graph permission context and legal transitions.
 
-Full YAML schema for `git_safe` is defined in `dev-flow-master/references/state-and-gates.md` § Signal Schemas. The field list here is the authoritative prose summary; the YAML block in state-and-gates.md is the authoritative machine-readable definition.
+The `git_safe` schema is owned by the versioned Graph contracts where modeled and by `dev-flow-master/references/state-and-gates.md` for Legacy Markdown. This Skill keeps only execution order and completion criteria.

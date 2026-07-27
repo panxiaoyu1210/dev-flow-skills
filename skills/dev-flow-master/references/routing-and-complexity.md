@@ -42,6 +42,8 @@ Required loading rule: before stage-specific work, load the skill that owns that
 
 This mode applies only when all evidence exists:
 
+When Loop and Master Graphs are active, the versioned `phase-handoff` contract is the admission check for the evidence below. Validate it against both current Graphs before routing; a mismatch, stale baseline/control hash, or invalid permission returns to Loop for handoff reissue. Legacy/Shadow retain the persisted-signal checks below.
+
 - `loop_baseline_ready.baseline_status: user_confirmed`
 - confirmed requirements, high-level design, detailed design, test plan (`test-plan.md`), and test case workbook (`test-cases.xlsx`) paths
 - Loop Phase DAG node for the current phase
@@ -57,6 +59,7 @@ In this mode:
 - Use `dev-flow-planning` to create the phase-internal task DAG, detailed Executable Test Matrix, and system-level checks.
 - Use `dev-flow-execution` to run TDD per task via `superpowers:test-driven-development` when available.
 - Use `dev-flow-acceptance` to produce phase acceptance evidence for the loop eval.
+- Keep Graph ownership isolated: Loop chooses the Phase and control budget; Master chooses phase-internal Requirement/Task/Test/Gate/Evidence/Git/Failure work. Neither controller writes the other's owned state.
 
 Exit this mode and return to the loop/user when:
 

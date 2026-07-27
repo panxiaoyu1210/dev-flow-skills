@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "event.invalid-timestamp",
+  "graphId": "master.checkout",
+  "eventType": "transition",
+  "occurredAt": "2026-04-31T09:30:00Z",
+  "actorId": "maker.checkout",
+  "subjectIds": ["task.checkout"],
+  "payload": {"from": "planned", "to": "ready"}
+}

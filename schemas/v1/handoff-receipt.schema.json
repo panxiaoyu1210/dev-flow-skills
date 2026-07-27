@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev-flow.dev/schemas/v1/handoff-receipt.schema.json",
+  "title": "Dev Flow accepted handoff receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "handoffId", "projectionHash", "phaseId", "fromGraphId",
+    "toGraphId", "acceptedAt", "actorId", "receiptHash"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "handoffId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "projectionHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"},
+    "phaseId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "fromGraphId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "toGraphId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "acceptedAt": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/timestamp"},
+    "actorId": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/id"},
+    "receiptHash": {"$ref": "https://dev-flow.dev/schemas/v1/graph.schema.json#/$defs/sha256"}
+  }
+}

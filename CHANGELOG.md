@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.1.27] - 2026-07-27
+
+### Added
+- Add an optional Node.js ESM Graph Control Kernel with versioned JSON Schema contracts for isolated Master and Loop control state, atomic persistence, structured phase handoff, deterministic DAG validation, typed impact propagation, next-step routing, minimal context generation, and governed transitions.
+- Add `dev-flow graph init`, `check`, `impact`, `next`, `context`, and `transition` with human-readable and JSON output, stable exit classes, Legacy/Shadow/Graph authority modes, and conservative `unknown_impact` handling.
+- Add valid and invalid contract fixtures plus end-to-end coverage for Graph CLI, schema semantics, persistence, transitions, Shadow compatibility, and Loop/Master handoff.
+
+### Changed
+- Make `dev-flow-master`, planning, execution, Git, acceptance, Loop, and Loop Envelope Graph-aware while preserving OpenSpec/opsx, user gates, checker review, Git permissions, side-effect boundaries, and Graph-free Legacy behavior.
+- Package `lib/graph/**` and `schemas/**`, with AJV as the only new runtime dependency, and extend doctor checks for Graph contracts, exports, package contents, mirrors, reference structure, and Skill authoring quality.
+
 ## [0.1.26] - 2026-07-21
 
 ### Changed
